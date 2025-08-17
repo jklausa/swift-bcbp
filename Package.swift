@@ -4,10 +4,16 @@ import PackageDescription
 
 let package = Package(
     name: "swift-bcbp",
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v10_15),
+        .tvOS(.v13),
+        .watchOS(.v6)
+    ],
     products: [
         .library(
-            name: "swift-bcbp",
-            targets: ["swift-bcbp"],
+            name: "SwiftBCBP",
+            targets: ["SwiftBCBP"]
         ),
     ],
     dependencies: [
@@ -15,12 +21,12 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "swift-bcbp",
+            name: "SwiftBCBP",
             dependencies: [.product(name: "Parsing", package: "swift-parsing")],
         ),
         .testTarget(
-            name: "swift-bcbp-tests",
-            dependencies: ["swift-bcbp"]
+            name: "SwiftBCBPTests",
+            dependencies: ["SwiftBCBP"]
         ),
     ]
 )
