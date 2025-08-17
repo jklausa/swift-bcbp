@@ -26,7 +26,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftBCBPTests",
-            dependencies: ["SwiftBCBP"]
+            dependencies: ["SwiftBCBP"],
+            resources: [
+                .copy("Examples")
+            ]
         ),
     ]
 )
