@@ -8,7 +8,7 @@ struct RawBoardingPass: Sendable, Codable {
 
     var isEticket: Bool
 
-    var pnr: String
+    var pnr: PNR
 
     var originAirportCode: String
     var destinationAirportCode: String
@@ -67,7 +67,7 @@ struct BoardingPassParser {
                 " ".map { false }
             }.replaceError(with: false)
 
-            Prefix(7).map(String.init) // pnr
+            PNRParser()
 
             Prefix(3).map(String.init) // origin
             Prefix(3).map(String.init) // destination
@@ -103,6 +103,8 @@ struct BoardingPassParser {
             TwoDigitHexStringToInt() // variable size field
 
             Optionally {
+                Skip { Prefix(while: { $0 != "^" }) }
+                // I think this should be not needed after all the other printer/parsers are in place.
                 SecurityDataParser()
             }
 
@@ -120,16 +122,33 @@ struct BoardingPassParser {
     }
 }
 
-struct TwoDigitHexStringToInt: Parser {
-    typealias Input = Substring
-    typealias Output = Int
+struct PNR: Codable, Sendable, Hashable {
+    var pnr: String
+    var rawPNR: String
+}
 
-    var body: some Parser<Input, Output> {
-        Prefix(2).compactMap { Int.init($0, radix: 16) }
+struct PNRParser: ParserPrinter {
+    var body: some Parser<Substring, PNR> {
+        Parse {
+            PNR(
+                pnr: $0.trimmingCharacters(in: .whitespaces),
+                rawPNR: String($0)
+            )
+        } with: {
+            Prefix(7)
+        }
+    }
+
+    func print(_ output: PNR, into input: inout Substring) throws {
+        input.prepend(contentsOf: output.rawPNR)
     }
 }
 
-extension TwoDigitHexStringToInt: ParserPrinter {
+struct TwoDigitHexStringToInt: ParserPrinter {
+    var body: some Parser<Substring, Int> {
+        Prefix(2).compactMap { Int.init($0, radix: 16) }
+    }
+
     func print(_ output: Int, into input: inout Substring) throws {
         let string = String(format: "%02X", output)
         input.prepend(contentsOf: string)
@@ -141,19 +160,17 @@ public struct SecurityData: Codable, Sendable, Hashable {
     var type: String
     var length: Int
     var data: String
+
+    // TODO: Should we calculate the length, instead of having a field for it?
 }
 
-public struct SecurityDataParser: Parser {
-    public var body: some Parser<Substring, SecurityData> {
-        Parse {
-            SecurityData(type: $0, length: $1, data: $2)
-        } with: {
-            Skip { Prefix(while: { $0 != "^" }) }
-            // I THINK ^- this should be removed after we have all the other parsers in place?
+public struct SecurityDataParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, SecurityData> {
+        ParsePrint(.memberwise(SecurityData.init)) {
             "^"
-            Prefix(1).map(String.init)
+            Prefix(1).map(.string)
             TwoDigitHexStringToInt()
-            Rest().map(String.init)
+            Rest().map(.string)
         }
     }
 }
