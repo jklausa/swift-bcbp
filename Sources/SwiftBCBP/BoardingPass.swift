@@ -5,8 +5,6 @@ struct RawBoardingPass: Sendable, Codable {
     // currently unused
 
     var name: String
-    var printableName: String { name.split(separator: "/").reversed().joined() }
-    // Does this make sense?
 
     var isEticket: Bool
 
@@ -25,7 +23,7 @@ struct RawBoardingPass: Sendable, Codable {
     var seat: String
     var sequenceNumber: Int
 
-    var passengerStatus: Int
+    var passengerStatus: String
 
     var variableSizeField: Int
 }
@@ -37,36 +35,80 @@ import Parsing
 struct BoardingPassParser {
 
     static func parse(input: String) throws -> RawBoardingPass? {
-        let parser = Parse(input: Substring.self) {
-            First() // format
-            First() // count
-            Prefix(20) // name?
-            First() // etix
-            Prefix(7) // pnr
+        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, _) in
+            RawBoardingPass(
+                formatCode: formatCode,
+                legsCount: legsCount,
+                name: name,
+                isEticket: isEticket,
+                pnr: pnr,
+                originAirportCode: originAirportCode,
+                destinationAirportCode: destinationAirportCode,
+                carrierCode: carrierCode,
+                flightNumber: flightNumber,
+                julianFlightDate: julianFlightDate,
+                cabinClass: cabinClass,
+                seat: seat,
+                sequenceNumber: sequenceNumber,
+                passengerStatus: passengerStatus,
+                variableSizeField: variableSizeField
+            )
+        } with: {
+            First().map(String.init) // format code
+            First().map(String.init).map { Int($0) ?? 0 } // legs count
+            Prefix(20).map(String.init) // name?
 
-            Prefix(3) // origin
-            Prefix(3) // destination
+            OneOf {
+                "E".map { true }
+                " ".map { false }
+            }.replaceError(with: false)
 
-            Prefix(3) // carrier
-            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces) }.map(Int.init) // flight number)
+            Prefix(7).map(String.init) // pnr
+
+            Prefix(3).map(String.init) // origin
+            Prefix(3).map(String.init) // destination
+
+            Prefix(3).map(String.init) // carrier
+            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces) }.compactMap(Int.init) // flight number)
 
             Digits(3) // julian date
 
-            First() // cabin class
-            Prefix(4) // seat
+            First().map(String.init) // cabin class
+            Prefix(4).map(String.init) // seat
 
-            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces).map(Int.init) } // sequence number
+            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces) }.compactMap(Int.init)  // sequence number
 
-            First() // passenger status
+            First().map(String.init) // passenger status
 
-            Rest()
+            TwoDigitHexStringToInt() // variable size field
+
+            Optionally {
+                Rest()
+            }
+
         }
 
         let output = try parser.parse(input)
         print(output)
 
-        return nil
+        return output
+
     }
-
-
 }
+
+struct TwoDigitHexStringToInt: Parser {
+    typealias Input = Substring
+    typealias Output = Int
+
+    var body: some Parser<Input, Output> {
+        Prefix(2).compactMap { Int.init($0, radix: 16) }
+    }
+}
+
+extension TwoDigitHexStringToInt: ParserPrinter {
+    func print(_ output: Int, into input: inout Substring) throws {
+        let string = String(format: "%02X", output)
+        input.prepend(contentsOf: string)
+    }
+}
+
