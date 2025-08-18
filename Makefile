@@ -11,4 +11,4 @@ test:
 
 # Extract BCBP test data from Apple Wallet passes
 extract-test-data:
-	@./extract-test-data.sh
+	@./scripts/extract-test-data.sh

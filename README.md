@@ -23,7 +23,7 @@ To extract BCBP data from your boarding passes:
 ```bash
 make extract-test-data
 # or directly:
-./extract-test-data.sh
+./scripts/extract-test-data.sh
 ```
 
 This will:
