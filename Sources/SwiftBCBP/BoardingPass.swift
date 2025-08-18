@@ -26,6 +26,8 @@ struct RawBoardingPass: Sendable, Codable {
     var passengerStatus: String
 
     var variableSizeField: Int
+
+    var securityData: SecurityData?
 }
 
 // https://github.com/ncredinburgh/iata-parser/blob/master/src/main/java/com/ncredinburgh/iata/specs/CheckinSource.java
@@ -35,7 +37,8 @@ import Parsing
 struct BoardingPassParser {
 
     static func parse(input: String) throws -> RawBoardingPass {
-        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, _) in
+        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, security, _) in
+            
             RawBoardingPass(
                 formatCode: formatCode,
                 legsCount: legsCount,
@@ -51,7 +54,8 @@ struct BoardingPassParser {
                 seat: seat,
                 sequenceNumber: sequenceNumber,
                 passengerStatus: passengerStatus,
-                variableSizeField: variableSizeField
+                variableSizeField: variableSizeField,
+                securityData: security
             )
         } with: {
             First().map(String.init) // format code
@@ -99,6 +103,10 @@ struct BoardingPassParser {
             TwoDigitHexStringToInt() // variable size field
 
             Optionally {
+                SecurityDataParser()
+            }
+
+            Optionally {
                 Rest()
             }
 
@@ -125,6 +133,28 @@ extension TwoDigitHexStringToInt: ParserPrinter {
     func print(_ output: Int, into input: inout Substring) throws {
         let string = String(format: "%02X", output)
         input.prepend(contentsOf: string)
+    }
+}
+
+// MARK: - Security Data
+public struct SecurityData: Codable, Sendable, Hashable {
+    var type: String
+    var length: Int
+    var data: String
+}
+
+public struct SecurityDataParser: Parser {
+    public var body: some Parser<Substring, SecurityData> {
+        Parse {
+            SecurityData(type: $0, length: $1, data: $2)
+        } with: {
+            Skip { Prefix(while: { $0 != "^" }) }
+            // I THINK ^- this should be removed after we have all the other parsers in place?
+            "^"
+            Prefix(1).map(String.init)
+            TwoDigitHexStringToInt()
+            Rest().map(String.init)
+        }
     }
 }
 
