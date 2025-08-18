@@ -6,6 +6,8 @@ Most other packages usually only support _parsing_ the format, this one explicit
 
 ## Status
 
+Very much WIP, not ready for any kind of usage.
+
 Based on my personal (300+) collection of boarding passes, which should be plenty of test data; in addition to the reference of the BCBP implementation guide.
 
 ## Test data
