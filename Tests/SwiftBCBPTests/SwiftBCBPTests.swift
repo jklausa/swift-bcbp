@@ -3,13 +3,17 @@ import Foundation
 import Parsing
 @testable import SwiftBCBP
 
-struct BoardingPassTestCase {
+struct BoardingPassTestCase: Codable, CustomTestStringConvertible {
     let filename: String?
     let input: String
 
     init(filename: String?, input: String) {
         self.filename = filename
         self.input = input
+    }
+
+    var testDescription: String {
+        "\(input.trimmingCharacters(in: .whitespacesAndNewlines))"
     }
 
 }
