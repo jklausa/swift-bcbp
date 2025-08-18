@@ -9,9 +9,9 @@ func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
     let boardingPass = try? BoardingPassParser.parse(input: testCase.input)
 
     let comment = if let filename = testCase.filename {
-        "Failed parsing: \(testCase.testDescription). To see the failing pass, run:\ncat \(filename) | json_pp"
+        "Failed parsing: \(testCase.bracketedInput). To see the failing pass, run:\ncat \(filename) | json_pp"
     } else {
-        "Failed parsing:\n\(testCase.testDescription)"
+        "Failed parsing:\n\(testCase.bracketedInput)"
     }
 
     #expect(boardingPass != nil, Comment(rawValue: comment))

@@ -2,7 +2,7 @@ import Testing
 import Foundation
 import Parsing
 
-struct BoardingPassTestCase: Codable, CustomTestStringConvertible {
+struct BoardingPassTestCase: Hashable, Codable, CustomTestStringConvertible {
     let filename: String?
     let input: String
 
@@ -12,6 +12,21 @@ struct BoardingPassTestCase: Codable, CustomTestStringConvertible {
     }
 
     var testDescription: String {
+        if let filename {
+            let url = URL(fileURLWithPath: filename)
+            let pathComponents = url.pathComponents
+
+            guard pathComponents.count >= 2 else {
+                return bracketedInput
+            }
+
+            return pathComponents[pathComponents.count - 2]
+        } else {
+            return bracketedInput
+        }
+    }
+
+    var bracketedInput: String {
         // Since whitespace is significant in the BCBP,
         // we're adding the brackets to be able to be see where
         // the actual input ends.
