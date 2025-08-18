@@ -7,7 +7,7 @@ build:
 
 # Run tests
 test:
-	swift test
+	swift test -q
 
 # Extract BCBP test data from Apple Wallet passes
 extract-test-data:
