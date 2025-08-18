@@ -18,6 +18,7 @@ find . -name "pass.json" -exec jq -r '
     select(
         has("boardingPass")
         and .passTypeIdentifier != "pass.com.deutschebahn.navigator"
+        and .passTypeIdentifier != "pass.com.sixt.reservation"
         and ((.barcodes[0].message // .barcode.message) != null and (.barcodes[0].message // .barcode.message) != "")
     )
     | input_filename + ": " + (.barcodes[0].message // .barcode.message)
@@ -31,4 +32,4 @@ The sets, on my Mac, at least, are mostly the same, with a couple of passes appe
 
 Someone who has more hunger for reverse engineering the system frameworks might be able to find out what the difference between the two is.
 
-Based on your particular collection, you might need to massage the `jq` invocation somewhat — as you can see, I needed to filter out the Deutsche Bahn passes, which are not BCBP compliant. If your collection contains any similar weirdness from different vendors, you might need to ignore these too.
+Based on your particular collection, you might need to massage the `jq` invocation somewhat — as you can see, I needed to filter out the Deutsche Bahn and Sixt passes, which are not BCBP compliant. If your collection contains any similar weirdness from different vendors, you might need to ignore these too.

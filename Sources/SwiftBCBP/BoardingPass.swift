@@ -73,10 +73,26 @@ struct BoardingPassParser {
 
             Digits(3) // julian date
 
-            First().map(String.init) // cabin class
+            OneOf {
+                // Some of my Qatar Airways boarding passes have a cabin class field that just spells out the
+                // whole cabin class, instead of using a single character, like the specs say.
+                "BUSINESS".map { "Business" }
+                "FIRST".map { "First" }
+                First().map(String.init) // cabin class
+            }
             Prefix(4).map(String.init) // seat
 
-            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces) }.compactMap(Int.init)  // sequence number
+            Prefix(5).map { sequence in
+                var sequence = sequence
+                // My AirCanada boarding passes have a sequence number that ends with an "A" character,
+                // which, contrary to one might expect, is not a hexadecimal "A", it seems to just be a suffix
+                // (or maybe a boarding group indicator? both of mine have "A", so whatcha gonna do).
+                if sequence.last == "A" {
+                    sequence.removeLast()
+                }
+
+                return sequence.trimmingCharacters(in: .whitespaces)
+            }.compactMap(Int.init)  // sequence number
 
             First().map(String.init) // passenger status
 
