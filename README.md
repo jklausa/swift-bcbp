@@ -4,6 +4,16 @@ A Swift-y printer-parser for BCBP (Bar Coded Boarding Pass) format.
 
 Most other packages usually only support _parsing_ the format, this one explicitly also supports _creating_ the BCBP data.
 
+## Design / Goals
+
+The goal of the project is simple: if you got a Boarding Pass from an airline, this library should be able to parse it.
+
+This means being _extremely_ liberal in accepting misformatted boarding passes, instead of following the BCBP spec closely.
+
+Another goal is to preserve the existing formatting, including out-of-spec behavior, when _printing_ the boarding pass — e.g. you should be able to round-trip between a String, parsed Boarding Pass, back to String and get the _exact same result_.
+
+A "strict" mode, where out-of-specs behavior is corrected when outputting might be added in the future.
+
 ## Status
 
 Very much WIP, not ready for any kind of usage.
