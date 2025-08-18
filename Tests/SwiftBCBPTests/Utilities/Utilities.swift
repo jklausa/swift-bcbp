@@ -12,7 +12,7 @@ struct BoardingPassTestCase: Codable, CustomTestStringConvertible {
     }
 
     var testDescription: String {
-        "\(input.trimmingCharacters(in: .whitespacesAndNewlines))"
+        "\(input)"
     }
 }
 
@@ -73,10 +73,11 @@ fileprivate struct TestCaseParser: Parser {
             $0.map { BoardingPassTestCase(filename: $0, input: $1) }
         }
         with: {
-            Many(1...){
+            Many(1...) {
                 PrefixThrough("pass.json").map(String.init)
                 ": "
-                PrefixThrough("\n").map(String.init)
+                PrefixUpTo("\n").map(String.init)
+                "\n"
             }
         }
     }
