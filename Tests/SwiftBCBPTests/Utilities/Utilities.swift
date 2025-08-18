@@ -12,7 +12,10 @@ struct BoardingPassTestCase: Codable, CustomTestStringConvertible {
     }
 
     var testDescription: String {
-        "\(input)"
+        // Since whitespace is significant in the BCBP,
+        // we're adding the brackets to be able to be see where
+        // the actual input ends.
+        "「\(input)」"
     }
 }
 

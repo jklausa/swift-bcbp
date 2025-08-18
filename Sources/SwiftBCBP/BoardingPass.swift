@@ -34,7 +34,7 @@ import Parsing
 
 struct BoardingPassParser {
 
-    static func parse(input: String) throws -> RawBoardingPass? {
+    static func parse(input: String) throws -> RawBoardingPass {
         let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, _) in
             RawBoardingPass(
                 formatCode: formatCode,

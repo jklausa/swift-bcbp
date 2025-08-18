@@ -6,12 +6,13 @@ import Parsing
 
 @Test("Test parsing", arguments: gatherTestCases())
 func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
-    let boardingPass = try BoardingPassParser.parse(input: testCase.input)
+    let boardingPass = try? BoardingPassParser.parse(input: testCase.input)
 
-    if boardingPass == nil, let path = testCase.filename {
-        Issue.record("Failure on BP with path: \(path)")
+    let comment = if let filename = testCase.filename {
+        "Failed parsing: \(testCase.testDescription). To see the failing pass, run:\ncat \(filename) | json_pp"
+    } else {
+        "Failed parsing:\n\(testCase.testDescription)"
     }
 
-
-    #expect(boardingPass != nil)
+    #expect(boardingPass != nil, Comment(rawValue: comment))
 }
