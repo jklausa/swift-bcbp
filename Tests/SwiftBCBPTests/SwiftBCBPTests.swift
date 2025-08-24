@@ -46,3 +46,36 @@ func testSecurityDataRoundtripping() async throws {
 
     #expect(printedData == securityData)
 }
+
+@Test
+func testOptionalMetadataParser() throws {
+    // This a snippet from my real BP (from LH), with the eticket and FF numbers redacted.
+    // The "Airline private data" section is intact, but I am pretty sure it is not attributable to me
+    let input = ">6180WW7215BLH              2A22099999999990 LH LH 999999999999999     Y*30600000K09  LHS    "
+
+    let parser = ConditionalItemsParser()
+
+    let parsedOutput = try parser.parse(input)
+
+    print(parsedOutput)
+
+    #expect(parsedOutput.passengerDescription == "0")
+    #expect(parsedOutput.sourceOfCheckIn == "W")
+    #expect(parsedOutput.sourceOfIssuance == "W")
+    #expect(parsedOutput.dateOfIssuance == "7215")
+    #expect(parsedOutput.documentType == "B")
+    #expect(parsedOutput.airlineDesignatorOfIssuer == "LH ")
+
+    #expect(parsedOutput.airlineNumericCode == "220")
+    #expect(parsedOutput.documentNumber == "9999999999")
+
+    #expect(parsedOutput.selecteeIndicator == "0")
+    #expect(parsedOutput.internationalDocumentVerification == " ")
+
+    #expect(parsedOutput.marketingCarrierDesignator == "LH ")
+
+    #expect(parsedOutput.frequentFlyerAirlineDesignator == "LH ")
+    #expect(parsedOutput.frequentFlyerNumber == "999999999999999 ")
+    #expect(parsedOutput.fastTrack == "Y")
+    #expect(parsedOutput.airlinePrivateData == "*30600000K09  LHS    ")
+}

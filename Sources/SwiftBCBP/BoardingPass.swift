@@ -27,6 +27,8 @@ struct RawBoardingPass: Sendable, Codable {
 
     var variableSizeField: Int
 
+    var conditionalData: VersionSixConditionalItems?
+
     var securityData: SecurityData?
 }
 
@@ -37,8 +39,8 @@ import Parsing
 struct BoardingPassParser {
 
     static func parse(input: String) throws -> RawBoardingPass {
-        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, security, _) in
-            
+        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, conditionalData, security, _) in
+
             RawBoardingPass(
                 formatCode: formatCode,
                 legsCount: legsCount,
@@ -55,6 +57,7 @@ struct BoardingPassParser {
                 sequenceNumber: sequenceNumber,
                 passengerStatus: passengerStatus,
                 variableSizeField: variableSizeField,
+                conditionalData: conditionalData,
                 securityData: security
             )
         } with: {
@@ -103,6 +106,10 @@ struct BoardingPassParser {
             TwoDigitHexStringToInt() // variable size field
 
             Optionally {
+                ConditionalItemsParser()
+            }
+
+            Optionally {
                 Skip { Prefix(while: { $0 != "^" }) }
                 // I think this should be not needed after all the other printer/parsers are in place.
                 SecurityDataParser()
@@ -124,7 +131,7 @@ struct BoardingPassParser {
 
 struct PNR: Codable, Sendable, Hashable {
     var pnr: String
-    var rawPNR: String
+    private(set) var rawPNR: String
 }
 
 struct PNRParser: ParserPrinter {
@@ -139,6 +146,9 @@ struct PNRParser: ParserPrinter {
         }
     }
 
+    // This needs to just right-pad the PNR, instead of outputting it raw.
+    // We actually need a generic purpose "right-pad" printer.
+    // I don't love the `raw` thing at all, but for now it should be fine.
     func print(_ output: PNR, into input: inout Substring) throws {
         input.prepend(contentsOf: output.rawPNR)
     }
@@ -172,6 +182,174 @@ public struct SecurityDataParser: ParserPrinter {
             TwoDigitHexStringToInt()
             Rest().map(.string)
         }
+    }
+}
+
+// MARK: - Conditional items section
+
+public struct ConditionalItemsParser: Parser {
+    public var body: some Parser<Substring, VersionSixConditionalItems> {
+        Parse {
+            (hexLength: Int,
+             passengerDescription: String,
+             sourceOfCheckin: String,
+             sourceOfIssuance: String,
+             dateOfIssuance: String,
+             documentType: String,
+             airlineDesignationOfIssuer: String,
+             baggageTags: BaggageTags,
+             secondHexLength: Int,
+             airlineNumericCode: String,
+             documentNumber: String,
+             selecteeIndicator: String,
+             docVerification: String,
+             marketingCarrierDesignator: String,
+             ffAirline: String,
+             ffNumber: String,
+             idADIndicator: String,
+             luggageAllowance: String,
+             fastTrack: String,
+             airlinePrivateData: String?) in
+
+            VersionSixConditionalItems(
+                passengerDescription: passengerDescription,
+                sourceOfCheckIn: sourceOfCheckin,
+                sourceOfIssuance: sourceOfIssuance,
+                dateOfIssuance: dateOfIssuance,
+                documentType: documentType,
+                airlineDesignatorOfIssuer: airlineDesignationOfIssuer,
+                firstBagNumber: baggageTags.firstBagNumber ?? 0,
+                secondBagNumber: baggageTags.secondBagNumber ?? 0,
+                thirdBagNumber: baggageTags.thirdBagNumber ?? 0,
+                airlineNumericCode: airlineNumericCode,
+                documentNumber: documentNumber,
+                selecteeIndicator: selecteeIndicator,
+                internationalDocumentVerification: docVerification,
+                marketingCarrierDesignator: marketingCarrierDesignator,
+                frequentFlyerAirlineDesignator: ffAirline,
+                frequentFlyerNumber: ffNumber,
+                idAdIndicator: idADIndicator,
+                freeBaggageAllowance: luggageAllowance,
+                fastTrack: fastTrack,
+                airlinePrivateData: airlinePrivateData
+            )
+
+        } with: {
+            ">6"
+            TwoDigitHexStringToInt()
+
+            Prefix(1).map(.string) // passenger description
+            Prefix(1).map(.string) // source of check-in
+            Prefix(1).map(.string) // source of issuance
+            Prefix(4).map(.string) // date of issuance
+            Prefix(1).map(.string) // document type
+            Prefix(3).map(.string) // airline designator of issuer
+
+            BaggageTagParser()
+
+            TwoDigitHexStringToInt()
+
+            Prefix(3).map(.string) // airline numeric code
+            Prefix(10).map(.string) // document number
+
+            Prefix(1).map(.string) // selectee indicator
+            Prefix(1).map(.string) // international document verification
+
+            Prefix(3).map(.string) // marketing carrier designator
+
+            Prefix(3).map(.string) // frequent flyer airline designator
+            Prefix(16).map(.string) // frequent flyer number
+
+            Prefix(1).map(.string) // ID/AD indicator
+
+            Prefix(3).map(.string) // free baggage allowance
+
+            Prefix(1).map(.string) // fast track
+
+            Optionally {
+                Rest().map(.string) // airline private data
+            }
+        }
+    }
+}
+
+struct BaggageTags: Sendable, Codable, Hashable {
+    var firstBagNumber: Int?
+    var secondBagNumber: Int?
+    var thirdBagNumber: Int?
+}
+
+struct BaggageTagParser: Parser {
+    var body: some Parser<Substring, BaggageTags> {
+        Parse { (first, second, third) in
+            BaggageTags(
+                firstBagNumber: Int(first),
+                secondBagNumber: second,
+                thirdBagNumber: third
+            )
+        } with: {
+            Prefix(13)
+            // We always want to consume at least 13 characters, even if they are spaces.
+
+            Optionally {
+                Digits(13)
+            }
+            Optionally {
+                Digits(13)
+            }
+        }
+    }
+}
+
+public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
+    var passengerDescription: String
+    var sourceOfCheckIn: String
+    var sourceOfIssuance: String
+    var dateOfIssuance: String
+    var documentType: String
+    var airlineDesignatorOfIssuer: String
+    var firstBagNumber: Int
+    var secondBagNumber: Int
+    var thirdBagNumber: Int
+
+    var airlineNumericCode: String // etix?
+    var documentNumber: String
+
+    var selecteeIndicator: String
+    var internationalDocumentVerification: String
+
+    var marketingCarrierDesignator: String
+
+    var frequentFlyerAirlineDesignator: String
+    var frequentFlyerNumber: String
+
+    var idAdIndicator: String
+    var freeBaggageAllowance: String
+    var fastTrack: String
+
+    var airlinePrivateData: String?
+
+    public init(passengerDescription: String, sourceOfCheckIn: String, sourceOfIssuance: String, dateOfIssuance: String, documentType: String, airlineDesignatorOfIssuer: String, firstBagNumber: Int, secondBagNumber: Int, thirdBagNumber: Int, airlineNumericCode: String, documentNumber: String, selecteeIndicator: String, internationalDocumentVerification: String, marketingCarrierDesignator: String, frequentFlyerAirlineDesignator: String, frequentFlyerNumber: String, idAdIndicator: String, freeBaggageAllowance: String, fastTrack: String, airlinePrivateData: String? = nil) {
+        self.passengerDescription = passengerDescription
+        self.sourceOfCheckIn = sourceOfCheckIn
+        self.sourceOfIssuance = sourceOfIssuance
+        self.dateOfIssuance = dateOfIssuance
+        self.documentType = documentType
+        self.airlineDesignatorOfIssuer = airlineDesignatorOfIssuer
+        self.firstBagNumber = firstBagNumber
+        self.secondBagNumber = secondBagNumber
+        self.thirdBagNumber = thirdBagNumber
+        self.airlineNumericCode = airlineNumericCode
+        self.documentNumber = documentNumber
+        self.selecteeIndicator = selecteeIndicator
+        self.internationalDocumentVerification = internationalDocumentVerification
+        self.marketingCarrierDesignator = marketingCarrierDesignator
+        self.frequentFlyerAirlineDesignator = frequentFlyerAirlineDesignator
+        self.frequentFlyerNumber = frequentFlyerNumber
+        self.idAdIndicator = idAdIndicator
+        self.freeBaggageAllowance = freeBaggageAllowance
+        self.fastTrack = fastTrack
+        self.airlinePrivateData = airlinePrivateData
     }
 }
 
