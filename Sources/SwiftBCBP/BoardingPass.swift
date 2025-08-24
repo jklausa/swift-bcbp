@@ -281,21 +281,24 @@ struct BaggageTags: Sendable, Codable, Hashable {
 
 struct BaggageTagParser: Parser {
     var body: some Parser<Substring, BaggageTags> {
-        Parse { (first, second, third) in
-            BaggageTags(
-                firstBagNumber: Int(first),
+        Parse { (first: String, otherBags: [Int]) -> BaggageTags in
+            let first: Int? = Int(first)
+            let second: Int? = if otherBags.count > 0 { otherBags[0] } else { nil }
+            let third: Int? = if otherBags.count > 1 { otherBags[1] } else { nil }
+            return BaggageTags(
+                firstBagNumber: first,
                 secondBagNumber: second,
                 thirdBagNumber: third
             )
         } with: {
-            Prefix(13)
-            // We always want to consume at least 13 characters, even if they are spaces.
-
-            Optionally {
-                Digits(13)
-            }
-            Optionally {
-                Digits(13)
+            Prefix(13).map(.string)
+            // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
+            // Nobody else does it like that but heyo!
+            Many(0...2) {
+                OneOf {
+                    "             ".map { 0 }
+                    Digits(13)
+                }
             }
         }
     }
