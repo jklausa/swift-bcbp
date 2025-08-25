@@ -120,3 +120,69 @@ func testCXEdgeCase() throws {
     #expect(parsedOutput.airlinePrivateData == "1BA")
 }
 
+@Test
+func testAFEdgeCase() async throws {
+    // Those, again, are snippets from my real boarding pass, with the etix and FF redacted.
+    // AF (and by extension KL?) seems to not bother with encoding anything after the selectee indicator,
+    // just chopping it off if not present?
+    //
+    // They also just don't fill a bunch of other fields that I've seen _most_ other airlines fill out, like
+    // the passengerDescription/sourceOfCheckIn/sourceOfIssuance/dateOfIssuance fields.
+    //
+    // If there is a FF, they do seem to encode a couple more fields.
+    //
+    // They also seem to have a slightly weird way of encoding the bags, where they just... omit the field entirely? if there
+    // are no checked bags. Most of other airlines still include the field, just fill them with spaces.
+    // Oh well...
+    let inputWithFF = ">60B        KL 2505711111111110    AZ 99999999        "
+    let inputWithoutFF = ">60B        KL 0E05799999999990"
+
+    let parser = ConditionalItemsParser()
+
+    let parsedWithFF = try parser.parse(inputWithFF)
+
+    #expect(parsedWithFF.passengerDescription == " ")
+    #expect(parsedWithFF.sourceOfCheckIn == " ")
+    #expect(parsedWithFF.sourceOfIssuance == " ")
+    #expect(parsedWithFF.dateOfIssuance == "    ")
+    #expect(parsedWithFF.documentType == " ")
+    #expect(parsedWithFF.airlineDesignatorOfIssuer == "KL ")
+    #expect(parsedWithFF.firstBagNumber == 0)
+    #expect(parsedWithFF.secondBagNumber == 0)
+    #expect(parsedWithFF.thirdBagNumber == 0)
+    #expect(parsedWithFF.airlineNumericCode == "057")
+    #expect(parsedWithFF.documentNumber == "1111111111")
+    #expect(parsedWithFF.selecteeIndicator == "0")
+    #expect(parsedWithFF.internationalDocumentVerification == " ")
+    #expect(parsedWithFF.marketingCarrierDesignator == "   ")
+    #expect(parsedWithFF.frequentFlyerAirlineDesignator == "AZ ")
+    #expect(parsedWithFF.frequentFlyerNumber == "99999999        ")
+    #expect(parsedWithFF.idAdIndicator == "")
+    #expect(parsedWithFF.freeBaggageAllowance == "")
+    #expect(parsedWithFF.fastTrack == "")
+    #expect(parsedWithFF.airlinePrivateData == nil)
+
+    let parsedWithoutFF = try parser.parse(inputWithoutFF)
+
+    #expect(parsedWithoutFF.passengerDescription == " ")
+    #expect(parsedWithoutFF.sourceOfCheckIn == " ")
+    #expect(parsedWithoutFF.sourceOfIssuance == " ")
+    #expect(parsedWithoutFF.dateOfIssuance == "    ")
+    #expect(parsedWithoutFF.documentType == " ")
+    #expect(parsedWithoutFF.airlineDesignatorOfIssuer == "KL ")
+    #expect(parsedWithoutFF.firstBagNumber == 0)
+    #expect(parsedWithoutFF.secondBagNumber == 0)
+    #expect(parsedWithoutFF.thirdBagNumber == 0)
+    #expect(parsedWithoutFF.airlineNumericCode == "057")
+    #expect(parsedWithoutFF.documentNumber == "9999999999")
+    #expect(parsedWithoutFF.selecteeIndicator == "0")
+    #expect(parsedWithoutFF.internationalDocumentVerification == "")
+    #expect(parsedWithoutFF.marketingCarrierDesignator == "")
+    #expect(parsedWithoutFF.frequentFlyerAirlineDesignator == "")
+    #expect(parsedWithoutFF.frequentFlyerNumber == "")
+    #expect(parsedWithoutFF.idAdIndicator == "")
+    #expect(parsedWithoutFF.freeBaggageAllowance == "")
+    #expect(parsedWithoutFF.fastTrack == "")
+    #expect(parsedWithoutFF.airlinePrivateData == nil)
+}
+

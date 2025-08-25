@@ -190,7 +190,7 @@ public struct SecurityDataParser: ParserPrinter {
 public struct ConditionalItemsParser: Parser {
     public var body: some Parser<Substring, VersionSixConditionalItems> {
         Parse {
-            (hexLength: Int,
+            (
              passengerDescription: String,
              sourceOfCheckin: String,
              sourceOfIssuance: String,
@@ -202,13 +202,13 @@ public struct ConditionalItemsParser: Parser {
              airlineNumericCode: String,
              documentNumber: String,
              selecteeIndicator: String,
-             docVerification: String,
-             marketingCarrierDesignator: String,
-             ffAirline: String,
-             ffNumber: String,
-             idADIndicator: String,
-             luggageAllowance: String,
-             fastTrack: String,
+             docVerification: String?,
+             marketingCarrierDesignator: String?,
+             ffAirline: String?,
+             ffNumber: String?,
+             idADIndicator: String?,
+             luggageAllowance: String?,
+             fastTrack: String?,
              airlinePrivateData: String?) in
 
             VersionSixConditionalItems(
@@ -224,13 +224,13 @@ public struct ConditionalItemsParser: Parser {
                 airlineNumericCode: airlineNumericCode,
                 documentNumber: documentNumber,
                 selecteeIndicator: selecteeIndicator,
-                internationalDocumentVerification: docVerification,
-                marketingCarrierDesignator: marketingCarrierDesignator,
-                frequentFlyerAirlineDesignator: ffAirline,
-                frequentFlyerNumber: ffNumber,
-                idAdIndicator: idADIndicator,
-                freeBaggageAllowance: luggageAllowance,
-                fastTrack: fastTrack,
+                internationalDocumentVerification: docVerification ?? "",
+                marketingCarrierDesignator: marketingCarrierDesignator ?? "",
+                frequentFlyerAirlineDesignator: ffAirline ?? "",
+                frequentFlyerNumber: ffNumber ?? "",
+                idAdIndicator: idADIndicator ?? "",
+                freeBaggageAllowance: luggageAllowance ?? "",
+                fastTrack: fastTrack ?? "",
                 airlinePrivateData: airlinePrivateData
             )
 
@@ -241,18 +241,24 @@ public struct ConditionalItemsParser: Parser {
                 ">8"
                 // V6 and V7 and V8 are (mostly) the same structure-wise, they just allow for additional states in some fields like gender markers, and change semantics of a couple of things (luggage registration plates)
             }
+
             TwoDigitHexStringToInt()
+                .flatMap { hexLength in
+                    // Take the length, and prefix
+                    Prefix(hexLength)
+                }
+                .pipe {
+                    Prefix(1).map(.string) // passenger description
+                    Prefix(1).map(.string) // source of check-in
+                    Prefix(1).map(.string) // source of issuance
+                    Prefix(4).map(.string) // date of issuance
+                    Prefix(1).map(.string) // document type
+                    Prefix(3).map(.string) // airline designator of issuer
 
-            Prefix(1).map(.string) // passenger description
-            Prefix(1).map(.string) // source of check-in
-            Prefix(1).map(.string) // source of issuance
-            Prefix(4).map(.string) // date of issuance
-            Prefix(1).map(.string) // document type
-            Prefix(3).map(.string) // airline designator of issuer
-
-            Optionally {
-                BaggageTagParser()
-            }
+                    Optionally {
+                        BaggageTagParser()
+                    }
+                }
 
             TwoDigitHexStringToInt()
 
@@ -260,18 +266,29 @@ public struct ConditionalItemsParser: Parser {
             Prefix(10).map(.string) // document number
 
             Prefix(1).map(.string) // selectee indicator
-            Prefix(1).map(.string) // international document verification
+            Optionally {
+                Prefix(1).map(.string) // international document verification
+            }
 
-            Prefix(3).map(.string) // marketing carrier designator
+            Optionally {
+                Prefix(3).map(.string) // marketing carrier designator
+            }
 
-            Prefix(3).map(.string) // frequent flyer airline designator
-            Prefix(16).map(.string) // frequent flyer number
-
-            Prefix(1).map(.string) // ID/AD indicator
-
-            Prefix(3).map(.string) // free baggage allowance
-
-            Prefix(1).map(.string) // fast track
+            Optionally {
+                Prefix(3).map(.string) // frequent flyer airline designator
+            }
+            Optionally {
+                Prefix(16).map(.string) // frequent flyer number
+            }
+            Optionally {
+                Prefix(1).map(.string) // ID/AD indicator
+            }
+            Optionally {
+                Prefix(3).map(.string) // free baggage allowance
+            }
+            Optionally {
+                Prefix(1).map(.string) // fast track
+            }
 
             Optionally {
                 Rest().map(.string) // airline private data
