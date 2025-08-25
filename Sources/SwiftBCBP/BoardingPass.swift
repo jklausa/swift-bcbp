@@ -243,17 +243,15 @@ public struct ConditionalItemsParser: Parser {
             }
 
             HexLengthPrefixedParser {
-                Parse {
-                    Prefix(1).map(.string) // passenger description
-                    Prefix(1).map(.string) // source of check-in
-                    Prefix(1).map(.string) // source of issuance
-                    Prefix(4).map(.string) // date of issuance
-                    Prefix(1).map(.string) // document type
-                    Prefix(3).map(.string) // airline designator of issuer
+                Prefix(1).map(.string) // passenger description
+                Prefix(1).map(.string) // source of check-in
+                Prefix(1).map(.string) // source of issuance
+                Prefix(4).map(.string) // date of issuance
+                Prefix(1).map(.string) // document type
+                Prefix(3).map(.string) // airline designator of issuer
 
-                    Optionally {
-                        BaggageTagParser()
-                    }
+                Optionally {
+                    BaggageTagParser()
                 }
             }
 
