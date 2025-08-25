@@ -58,11 +58,11 @@ echo
 echo "You should _never_ post this publicly (especially mid-trip!); but these are"
 echo "relatively harmless after a trip is concluded."
 echo ""
-echo "(unless you're Tony Abbot, then you might be screwed.)"
+echo "(unless you're Tony Abbott, then you might be screwed.)"
 echo "https://mango.pdf.zone/finding-former-australian-prime-minister-tony-abbotts-passport-number-on-instagram/"
 echo ""
 echo "Please note that the frequent flyer number, if contained, might be used"
-echo "to uniquely identify you, and/or h4x like Tony Abbot."
+echo "to uniquely identify you, and/or h4x like Tony Abbott."
 echo ""
 read -p "Do you consent to extracting this data? (yes/no): " consent
 if [ "$consent" != "yes" ]; then
