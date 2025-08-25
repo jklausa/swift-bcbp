@@ -1,6 +1,8 @@
-import Testing
 import Foundation
 import Parsing
+import Testing
+
+// MARK: - BoardingPassTestCase
 
 struct BoardingPassTestCase: Hashable, Codable, CustomTestStringConvertible {
     let filename: String?
@@ -38,8 +40,8 @@ func gatherTestCases() -> [BoardingPassTestCase] {
     [
         genericTestCases(),
         edgeCasesTestCases(),
-        privateTestCases()
-    ].flatMap { $0 }
+        privateTestCases(),
+    ].flatMap(\.self)
 }
 
 // Generic test cases from the BCBP5 documentation and other sources.
@@ -52,7 +54,7 @@ private func genericTestCases() -> [BoardingPassTestCase] {
 
 // These contain known-non-compliant boarding passes from my collection, with the personal data stripped out.
 private func edgeCasesTestCases() -> [BoardingPassTestCase] {
-    return []
+    []
 }
 
 // Extracted using the `extract-test-data.sh` script, run `make extract-test-data` to
@@ -61,12 +63,15 @@ private func privateTestCases() -> [BoardingPassTestCase] {
 
     guard let resources, !resources.isEmpty else {
         // When Swift 6.3 lands, this should be a `warning`, not a fatal error.
-        // But these seem to be silently swallowed anyway, and not reported anywhere anyway, so we can probably get away with it for now..
-        Issue.record("No local test cases found in the Examples directory. Run `make extract-test-data` to generate them.")
+        // But these seem to be silently swallowed anyway, and not reported anywhere anyway, so we can probably get away
+        // with it for now..
+        Issue
+            .record(
+                "No local test cases found in the Examples directory. Run `make extract-test-data` to generate them.",
+            )
         return []
     }
 
-    
     var testCases: [BoardingPassTestCase] = []
 
     for resource in resources {
@@ -85,7 +90,9 @@ private func privateTestCases() -> [BoardingPassTestCase] {
     return testCases
 }
 
-fileprivate struct TestCaseParser: Parser {
+// MARK: - TestCaseParser
+
+private struct TestCaseParser: Parser {
     var body: some Parser<Substring, [BoardingPassTestCase]> {
         Parse(input: Substring.self) {
             $0.map { BoardingPassTestCase(filename: $0, input: $1) }

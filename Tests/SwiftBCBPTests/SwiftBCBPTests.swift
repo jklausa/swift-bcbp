@@ -1,11 +1,10 @@
-import Testing
 import Foundation
 import Parsing
+import Testing
 @testable import SwiftBCBP
 
-
 @Test("Test parsing", arguments: gatherTestCases())
-func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
+func bCBP5Example(testCase: BoardingPassTestCase) async throws {
     let boardingPass = try? BoardingPassParser.parse(input: testCase.input)
 
     let comment = if let filename = testCase.filename {
@@ -16,6 +15,7 @@ func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
 
     if testCase.input.contains(">6") || testCase.input.contains(">7") || testCase.input.contains(">8") {
         if boardingPass?.conditionalData == nil {
+            // swiftlint:disable:next no_print_statements
             print("Failed parsing conditional data in:\n\(testCase.bracketedInput)")
         }
         #expect(boardingPass?.conditionalData != nil)
@@ -25,7 +25,7 @@ func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
 }
 
 @Test
-func testPNRRoundtripping() throws {
+func pNRRoundtripping() throws {
     let pnrString = "ABC123 "
 
     let pnr = try PNRParser().parse(pnrString)
@@ -38,7 +38,7 @@ func testPNRRoundtripping() throws {
 }
 
 @Test
-func testSecurityDataRoundtripping() async throws {
+func securityDataRoundtripping() async throws {
     let securityData = "^460MEUCIQCr+eKlAdvd6CbPfW8cQIK9nBLKO4VCPukkiIZ228CCOgIgRbQE76yR14GsbjvP6GKFl7tBhgMna+iMPvJwo+MrPI0="
     // This an actual snippet from my boarding pass, but given this is... I think...? encrypted, should be fine?
 
@@ -47,7 +47,8 @@ func testSecurityDataRoundtripping() async throws {
 
     #expect(parsedData.type == "4")
     #expect(parsedData.length == 96)
-    #expect(parsedData.data == "MEUCIQCr+eKlAdvd6CbPfW8cQIK9nBLKO4VCPukkiIZ228CCOgIgRbQE76yR14GsbjvP6GKFl7tBhgMna+iMPvJwo+MrPI0=")
+    #expect(parsedData
+        .data == "MEUCIQCr+eKlAdvd6CbPfW8cQIK9nBLKO4VCPukkiIZ228CCOgIgRbQE76yR14GsbjvP6GKFl7tBhgMna+iMPvJwo+MrPI0=")
 
     let printedData = try securityDataParser.print(parsedData)
 
@@ -55,7 +56,7 @@ func testSecurityDataRoundtripping() async throws {
 }
 
 @Test
-func testOptionalMetadataParser() throws {
+func optionalMetadataParser() throws {
     // This a snippet from my real BP (from LH), with the eticket and FF numbers redacted.
     // The "Airline private data" section is intact, but I am pretty sure it is not attributable to me
     let input = ">6180WW7215BLH              2A22099999999990 LH LH 999999999999999     Y*30600000K09  LHS    "
@@ -63,8 +64,6 @@ func testOptionalMetadataParser() throws {
     let parser = ConditionalItemsParser()
 
     let parsedOutput = try parser.parse(input)
-
-    print(parsedOutput)
 
     #expect(parsedOutput.passengerDescription == "0")
     #expect(parsedOutput.sourceOfCheckIn == "W")
@@ -88,7 +87,7 @@ func testOptionalMetadataParser() throws {
 }
 
 @Test
-func testCXEdgeCase() throws {
+func cXEdgeCase() throws {
     // This is again a snippet from my real boarding pass, with the etix and FF redacted.
     // CX seemed to have an unusual way of encoding the bag numbers, which I have not seen in other passes,
     // where they fill out all three bag numbers with empty space when there are no bags.
@@ -121,7 +120,7 @@ func testCXEdgeCase() throws {
 }
 
 @Test
-func testAFEdgeCase() async throws {
+func aFEdgeCase() async throws {
     // Those, again, are snippets from my real boarding pass, with the etix and FF redacted.
     // AF (and by extension KL?) seems to not bother with encoding anything after the selectee indicator,
     // just chopping it off if not present?
@@ -131,7 +130,8 @@ func testAFEdgeCase() async throws {
     //
     // If there is a FF, they do seem to encode a couple more fields.
     //
-    // They also seem to have a slightly weird way of encoding the bags, where they just... omit the field entirely? if there
+    // They also seem to have a slightly weird way of encoding the bags, where they just... omit the field entirely? if
+    // there
     // are no checked bags. Most of other airlines still include the field, just fill them with spaces.
     // Oh well...
     let inputWithFF = ">60B        KL 2505711111111110    AZ 99999999        "
@@ -185,4 +185,3 @@ func testAFEdgeCase() async throws {
     #expect(parsedWithoutFF.fastTrack == "")
     #expect(parsedWithoutFF.airlinePrivateData == nil)
 }
-

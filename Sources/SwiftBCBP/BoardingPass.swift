@@ -1,3 +1,5 @@
+// MARK: - RawBoardingPass
+
 struct RawBoardingPass: Sendable, Codable {
     var formatCode: String
 
@@ -36,11 +38,13 @@ struct RawBoardingPass: Sendable, Codable {
 
 import Parsing
 
-struct BoardingPassParser {
+// MARK: - BoardingPassParser
 
+enum BoardingPassParser {
     static func parse(input: String) throws -> RawBoardingPass {
-        let parser = Parse(input: Substring.self) { (formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, conditionalData, security, _) in
-
+        let parser = Parse(input: Substring
+            .self)
+        { formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, conditionalData, security, _ in
             RawBoardingPass(
                 formatCode: formatCode,
                 legsCount: legsCount,
@@ -58,7 +62,7 @@ struct BoardingPassParser {
                 passengerStatus: passengerStatus,
                 variableSizeField: variableSizeField,
                 conditionalData: conditionalData,
-                securityData: security
+                securityData: security,
             )
         } with: {
             First().map(String.init) // format code
@@ -99,7 +103,7 @@ struct BoardingPassParser {
                 }
 
                 return sequence.trimmingCharacters(in: .whitespaces)
-            }.compactMap(Int.init)  // sequence number
+            }.compactMap(Int.init) // sequence number
 
             First().map(String.init) // passenger status
 
@@ -118,28 +122,29 @@ struct BoardingPassParser {
             Optionally {
                 Rest()
             }
-
         }
 
         let output = try parser.parse(input)
-        print(output)
 
         return output
-
     }
 }
+
+// MARK: - PNR
 
 struct PNR: Codable, Sendable, Hashable {
     var pnr: String
     private(set) var rawPNR: String
 }
 
+// MARK: - PNRParser
+
 struct PNRParser: ParserPrinter {
     var body: some Parser<Substring, PNR> {
         Parse {
             PNR(
                 pnr: $0.trimmingCharacters(in: .whitespaces),
-                rawPNR: String($0)
+                rawPNR: String($0),
             )
         } with: {
             Prefix(7)
@@ -154,9 +159,11 @@ struct PNRParser: ParserPrinter {
     }
 }
 
+// MARK: - TwoDigitHexStringToInt
+
 struct TwoDigitHexStringToInt: ParserPrinter {
     var body: some Parser<Substring, Int> {
-        Prefix(2).compactMap { Int.init($0, radix: 16) }
+        Prefix(2).compactMap { Int($0, radix: 16) }
     }
 
     func print(_ output: Int, into input: inout Substring) throws {
@@ -165,7 +172,8 @@ struct TwoDigitHexStringToInt: ParserPrinter {
     }
 }
 
-// MARK: - Security Data
+// MARK: - SecurityData
+
 public struct SecurityData: Codable, Sendable, Hashable {
     var type: String
     var length: Int
@@ -173,6 +181,8 @@ public struct SecurityData: Codable, Sendable, Hashable {
 
     // TODO: Should we calculate the length, instead of having a field for it?
 }
+
+// MARK: - SecurityDataParser
 
 public struct SecurityDataParser: ParserPrinter {
     public var body: some ParserPrinter<Substring, SecurityData> {
@@ -185,32 +195,32 @@ public struct SecurityDataParser: ParserPrinter {
     }
 }
 
-// MARK: - Conditional items section
+// MARK: - ConditionalItemsParser
 
 public struct ConditionalItemsParser: Parser {
     public var body: some Parser<Substring, VersionSixConditionalItems> {
         Parse {
             (
-             passengerDescription: String,
-             sourceOfCheckin: String,
-             sourceOfIssuance: String,
-             dateOfIssuance: String,
-             documentType: String,
-             airlineDesignationOfIssuer: String,
-             baggageTags: BaggageTags?,
-             secondHexLength: Int,
-             airlineNumericCode: String,
-             documentNumber: String,
-             selecteeIndicator: String,
-             docVerification: String?,
-             marketingCarrierDesignator: String?,
-             ffAirline: String?,
-             ffNumber: String?,
-             idADIndicator: String?,
-             luggageAllowance: String?,
-             fastTrack: String?,
-             airlinePrivateData: String?) in
-
+                passengerDescription: String,
+                sourceOfCheckin: String,
+                sourceOfIssuance: String,
+                dateOfIssuance: String,
+                documentType: String,
+                airlineDesignationOfIssuer: String,
+                baggageTags: BaggageTags?,
+                _: Int,
+                airlineNumericCode: String,
+                documentNumber: String,
+                selecteeIndicator: String,
+                docVerification: String?,
+                marketingCarrierDesignator: String?,
+                ffAirline: String?,
+                ffNumber: String?,
+                idADIndicator: String?,
+                luggageAllowance: String?,
+                fastTrack: String?,
+                airlinePrivateData: String?,
+            ) in
             VersionSixConditionalItems(
                 passengerDescription: passengerDescription,
                 sourceOfCheckIn: sourceOfCheckin,
@@ -231,7 +241,7 @@ public struct ConditionalItemsParser: Parser {
                 idAdIndicator: idADIndicator ?? "",
                 freeBaggageAllowance: luggageAllowance ?? "",
                 fastTrack: fastTrack ?? "",
-                airlinePrivateData: airlinePrivateData
+                airlinePrivateData: airlinePrivateData,
             )
 
         } with: {
@@ -239,7 +249,8 @@ public struct ConditionalItemsParser: Parser {
                 ">6"
                 ">7"
                 ">8"
-                // V6 and V7 and V8 are (mostly) the same structure-wise, they just allow for additional states in some fields like gender markers, and change semantics of a couple of things (luggage registration plates)
+                // V6 and V7 and V8 are (mostly) the same structure-wise, they just allow for additional states in some
+                // fields like gender markers, and change semantics of a couple of things (luggage registration plates)
             }
 
             TwoDigitHexStringToInt()
@@ -297,27 +308,30 @@ public struct ConditionalItemsParser: Parser {
     }
 }
 
+// MARK: - BaggageTags
+
 struct BaggageTags: Sendable, Codable, Hashable {
     var firstBagNumber: Int?
     var secondBagNumber: Int?
     var thirdBagNumber: Int?
 }
 
-struct BaggageTagParser: Parser {
+// MARK: - BaggageTagParser
 
+struct BaggageTagParser: Parser {
     var body: some Parser<Substring, BaggageTags> {
-        Parse {  (bags: [Int]) -> BaggageTags in
+        Parse { (bags: [Int]) -> BaggageTags in
             let second: Int? = if bags.count > 1 { bags[1] } else { nil }
             let third: Int? = if bags.count > 2 { bags[2] } else { nil }
             return BaggageTags(
                 firstBagNumber: bags.first,
                 secondBagNumber: second,
-                thirdBagNumber: third
+                thirdBagNumber: third,
             )
         } with: {
             // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
             // Nobody else does it like that but heyo!
-            Many(1...3) {
+            Many(1 ... 3) {
                 OneOf {
                     "             ".map { 0 }
                     Digits(13)
@@ -326,6 +340,8 @@ struct BaggageTagParser: Parser {
         }
     }
 }
+
+// MARK: - VersionSixConditionalItems
 
 public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
     var passengerDescription: String
@@ -355,7 +371,28 @@ public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
 
     var airlinePrivateData: String?
 
-    public init(passengerDescription: String, sourceOfCheckIn: String, sourceOfIssuance: String, dateOfIssuance: String, documentType: String, airlineDesignatorOfIssuer: String, firstBagNumber: Int, secondBagNumber: Int, thirdBagNumber: Int, airlineNumericCode: String, documentNumber: String, selecteeIndicator: String, internationalDocumentVerification: String, marketingCarrierDesignator: String, frequentFlyerAirlineDesignator: String, frequentFlyerNumber: String, idAdIndicator: String, freeBaggageAllowance: String, fastTrack: String, airlinePrivateData: String? = nil) {
+    public init(
+        passengerDescription: String,
+        sourceOfCheckIn: String,
+        sourceOfIssuance: String,
+        dateOfIssuance: String,
+        documentType: String,
+        airlineDesignatorOfIssuer: String,
+        firstBagNumber: Int,
+        secondBagNumber: Int,
+        thirdBagNumber: Int,
+        airlineNumericCode: String,
+        documentNumber: String,
+        selecteeIndicator: String,
+        internationalDocumentVerification: String,
+        marketingCarrierDesignator: String,
+        frequentFlyerAirlineDesignator: String,
+        frequentFlyerNumber: String,
+        idAdIndicator: String,
+        freeBaggageAllowance: String,
+        fastTrack: String,
+        airlinePrivateData: String? = nil,
+    ) {
         self.passengerDescription = passengerDescription
         self.sourceOfCheckIn = sourceOfCheckIn
         self.sourceOfIssuance = sourceOfIssuance
