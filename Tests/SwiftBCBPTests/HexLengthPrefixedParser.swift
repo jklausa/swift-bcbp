@@ -35,3 +35,13 @@ func lengthPrefixedParserRoundtrippingWithSpaces() throws {
     try parser.print(parsed, into: &buffer)
     #expect(buffer == originalString)
 }
+
+@Test
+func twoDigitHexParserThrowsOnTooLargeValue() {
+    let parser = TwoDigitHexStringToInt()
+
+    var buffer = "" as Substring
+    #expect(throws: BCBPError.hexValueTooBig) {
+        try parser.print(256, into: &buffer)
+    }
+}

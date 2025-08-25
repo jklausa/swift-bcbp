@@ -26,6 +26,7 @@ extension HexLengthPrefixedParser: ParserPrinter where Downstream: ParserPrinter
 
         try self.downstream.print(output, into: &buffer)
         input.prepend(contentsOf: buffer)
+
         try TwoDigitHexStringToInt().print(buffer.count, into: &input)
     }
 }
@@ -37,6 +38,9 @@ struct TwoDigitHexStringToInt: ParserPrinter {
         Prefix(2)
             .pipe { Int.parser(radix: 16) }
             .printing { value, input in
+                guard value >= 0 && value <= 0xFF else {
+                    throw BCBPError.hexValueTooBig
+                }
                 input.prepend(contentsOf: String(format: "%02X", value))
             }
     }
