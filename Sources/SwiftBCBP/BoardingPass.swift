@@ -159,18 +159,7 @@ struct PNRParser: ParserPrinter {
     }
 }
 
-// MARK: - TwoDigitHexStringToInt
 
-struct TwoDigitHexStringToInt: ParserPrinter {
-    var body: some Parser<Substring, Int> {
-        Prefix(2).compactMap { Int($0, radix: 16) }
-    }
-
-    func print(_ output: Int, into input: inout Substring) throws {
-        let string = String(format: "%02X", output)
-        input.prepend(contentsOf: string)
-    }
-}
 
 // MARK: - SecurityData
 
@@ -253,12 +242,8 @@ public struct ConditionalItemsParser: Parser {
                 // fields like gender markers, and change semantics of a couple of things (luggage registration plates)
             }
 
-            TwoDigitHexStringToInt()
-                .flatMap { hexLength in
-                    // Take the length, and prefix
-                    Prefix(hexLength)
-                }
-                .pipe {
+            HexLengthPrefixedParser {
+                Parse {
                     Prefix(1).map(.string) // passenger description
                     Prefix(1).map(.string) // source of check-in
                     Prefix(1).map(.string) // source of issuance
@@ -270,6 +255,7 @@ public struct ConditionalItemsParser: Parser {
                         BaggageTagParser()
                     }
                 }
+            }
 
             TwoDigitHexStringToInt()
 
@@ -415,4 +401,3 @@ public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
         self.airlinePrivateData = airlinePrivateData
     }
 }
-

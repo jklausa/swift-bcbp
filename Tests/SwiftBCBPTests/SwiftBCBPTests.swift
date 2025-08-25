@@ -4,7 +4,7 @@ import Testing
 @testable import SwiftBCBP
 
 @Test("Test parsing", arguments: gatherTestCases())
-func bCBP5Example(testCase: BoardingPassTestCase) async throws {
+func BCBP5Example(testCase: BoardingPassTestCase) async throws {
     let boardingPass = try? BoardingPassParser.parse(input: testCase.input)
 
     let comment = if let filename = testCase.filename {
@@ -25,7 +25,7 @@ func bCBP5Example(testCase: BoardingPassTestCase) async throws {
 }
 
 @Test
-func pNRRoundtripping() throws {
+func PNRRoundtripping() throws {
     let pnrString = "ABC123 "
 
     let pnr = try PNRParser().parse(pnrString)
@@ -87,7 +87,7 @@ func optionalMetadataParser() throws {
 }
 
 @Test
-func cXEdgeCase() throws {
+func cathayEdgeCase() throws {
     // This is again a snippet from my real boarding pass, with the etix and FF redacted.
     // CX seemed to have an unusual way of encoding the bag numbers, which I have not seen in other passes,
     // where they fill out all three bag numbers with empty space when there are no bags.
@@ -119,8 +119,9 @@ func cXEdgeCase() throws {
     #expect(parsedOutput.airlinePrivateData == "1BA")
 }
 
+
 @Test
-func aFEdgeCase() async throws {
+func airFranceEdgeCase() async throws {
     // Those, again, are snippets from my real boarding pass, with the etix and FF redacted.
     // AF (and by extension KL?) seems to not bother with encoding anything after the selectee indicator,
     // just chopping it off if not present?
