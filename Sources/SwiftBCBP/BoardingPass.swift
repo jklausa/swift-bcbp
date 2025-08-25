@@ -197,7 +197,7 @@ public struct ConditionalItemsParser: Parser {
              dateOfIssuance: String,
              documentType: String,
              airlineDesignationOfIssuer: String,
-             baggageTags: BaggageTags,
+             baggageTags: BaggageTags?,
              secondHexLength: Int,
              airlineNumericCode: String,
              documentNumber: String,
@@ -218,9 +218,9 @@ public struct ConditionalItemsParser: Parser {
                 dateOfIssuance: dateOfIssuance,
                 documentType: documentType,
                 airlineDesignatorOfIssuer: airlineDesignationOfIssuer,
-                firstBagNumber: baggageTags.firstBagNumber ?? 0,
-                secondBagNumber: baggageTags.secondBagNumber ?? 0,
-                thirdBagNumber: baggageTags.thirdBagNumber ?? 0,
+                firstBagNumber: baggageTags?.firstBagNumber ?? 0,
+                secondBagNumber: baggageTags?.secondBagNumber ?? 0,
+                thirdBagNumber: baggageTags?.thirdBagNumber ?? 0,
                 airlineNumericCode: airlineNumericCode,
                 documentNumber: documentNumber,
                 selecteeIndicator: selecteeIndicator,
@@ -235,7 +235,12 @@ public struct ConditionalItemsParser: Parser {
             )
 
         } with: {
-            ">6"
+            OneOf {
+                ">6"
+                ">7"
+                ">8"
+                // V6 and V7 and V8 are (mostly) the same structure-wise, they just allow for additional states in some fields like gender markers, and change semantics of a couple of things (luggage registration plates)
+            }
             TwoDigitHexStringToInt()
 
             Prefix(1).map(.string) // passenger description
@@ -245,7 +250,9 @@ public struct ConditionalItemsParser: Parser {
             Prefix(1).map(.string) // document type
             Prefix(3).map(.string) // airline designator of issuer
 
-            BaggageTagParser()
+            Optionally {
+                BaggageTagParser()
+            }
 
             TwoDigitHexStringToInt()
 
@@ -280,21 +287,20 @@ struct BaggageTags: Sendable, Codable, Hashable {
 }
 
 struct BaggageTagParser: Parser {
+
     var body: some Parser<Substring, BaggageTags> {
-        Parse { (first: String, otherBags: [Int]) -> BaggageTags in
-            let first: Int? = Int(first)
-            let second: Int? = if otherBags.count > 0 { otherBags[0] } else { nil }
-            let third: Int? = if otherBags.count > 1 { otherBags[1] } else { nil }
+        Parse {  (bags: [Int]) -> BaggageTags in
+            let second: Int? = if bags.count > 1 { bags[1] } else { nil }
+            let third: Int? = if bags.count > 2 { bags[2] } else { nil }
             return BaggageTags(
-                firstBagNumber: first,
+                firstBagNumber: bags.first,
                 secondBagNumber: second,
                 thirdBagNumber: third
             )
         } with: {
-            Prefix(13).map(.string)
             // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
             // Nobody else does it like that but heyo!
-            Many(0...2) {
+            Many(1...3) {
                 OneOf {
                     "             ".map { 0 }
                     Digits(13)

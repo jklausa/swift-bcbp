@@ -14,6 +14,13 @@ func testBCBP5Example(testCase: BoardingPassTestCase) async throws {
         "Failed parsing:\n\(testCase.bracketedInput)"
     }
 
+    if testCase.input.contains(">6") || testCase.input.contains(">7") || testCase.input.contains(">8") {
+        if boardingPass?.conditionalData == nil {
+            print("Failed parsing conditional data in:\n\(testCase.bracketedInput)")
+        }
+        #expect(boardingPass?.conditionalData != nil)
+    }
+
     #expect(boardingPass != nil, Comment(rawValue: comment))
 }
 
@@ -79,3 +86,37 @@ func testOptionalMetadataParser() throws {
     #expect(parsedOutput.fastTrack == "Y")
     #expect(parsedOutput.airlinePrivateData == "*30600000K09  LHS    ")
 }
+
+@Test
+func testCXEdgeCase() throws {
+    // This is again a snippet from my real boarding pass, with the etix and FF redacted.
+    // CX seemed to have an unusual way of encoding the bag numbers, which I have not seen in other passes,
+    // where they fill out all three bag numbers with empty space when there are no bags.
+    let input = ">6320WW9295BCX                                        2A1259999999999 1CX BA 99999999         20KN1BA"
+
+    let parser = ConditionalItemsParser()
+
+    let parsedOutput = try parser.parse(input)
+
+    #expect(parsedOutput.passengerDescription == "0")
+    #expect(parsedOutput.sourceOfCheckIn == "W")
+    #expect(parsedOutput.sourceOfIssuance == "W")
+    #expect(parsedOutput.dateOfIssuance == "9295")
+    #expect(parsedOutput.documentType == "B")
+    #expect(parsedOutput.airlineDesignatorOfIssuer == "CX ")
+    #expect(parsedOutput.firstBagNumber == 0)
+    #expect(parsedOutput.secondBagNumber == 0)
+    #expect(parsedOutput.thirdBagNumber == 0)
+    #expect(parsedOutput.airlineNumericCode == "125")
+    #expect(parsedOutput.documentNumber == "9999999999")
+    #expect(parsedOutput.selecteeIndicator == " ")
+    #expect(parsedOutput.internationalDocumentVerification == "1")
+    #expect(parsedOutput.marketingCarrierDesignator == "CX ")
+    #expect(parsedOutput.frequentFlyerAirlineDesignator == "BA ")
+    #expect(parsedOutput.frequentFlyerNumber == "99999999        ")
+    #expect(parsedOutput.idAdIndicator == " ")
+    #expect(parsedOutput.freeBaggageAllowance == "20K")
+    #expect(parsedOutput.fastTrack == "N")
+    #expect(parsedOutput.airlinePrivateData == "1BA")
+}
+
