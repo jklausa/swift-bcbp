@@ -37,6 +37,29 @@ func lengthPrefixedParserRoundtrippingWithSpaces() throws {
 }
 
 @Test
+func multiplePrefixedParsers() throws {
+    let parser = ParsePrint {
+        HexLengthPrefixedParser {
+            Rest().map(.string)
+        }
+        HexLengthPrefixedParser {
+            Int.parser()
+        }
+    }
+
+    let originalString = "07HELLO  0B12345678901"
+
+    let parsed = try parser.parse(originalString)
+    #expect(parsed.0 == "HELLO  ")
+    #expect(parsed.1 == 12345678901)
+
+    var buffer = "" as Substring
+    try parser.print(parsed, into: &buffer)
+    #expect(buffer == originalString)
+}
+
+
+@Test
 func twoDigitHexParserThrowsOnTooLargeValue() {
     let parser = TwoDigitHexStringToInt()
 
