@@ -3,7 +3,7 @@ import Parsing
 struct RightPaddedStringParser: ParserPrinter {
     let length: Int
 
-    var body: some Parser<Substring, String> {
+    var body: some Parser<Substring, Substring> {
         Prefix(length)
             .map { substring in
                 var substring = substring
@@ -12,11 +12,11 @@ struct RightPaddedStringParser: ParserPrinter {
                     substring.removeLast()
                 }
 
-                return String(substring)
+                return substring
             }
     }
 
-    func print(_ output: String, into input: inout Substring) throws {
+    func print(_ output: Substring, into input: inout Substring) throws {
         let paddingCount = length - output.count
 
         for _ in 0 ..< paddingCount {

@@ -1,6 +1,6 @@
 // MARK: - RawBoardingPass
 
-struct RawBoardingPass: Sendable, Codable {
+struct RawBoardingPass: Sendable, Codable, Hashable {
     var formatCode: String
 
     var legsCount: Int
@@ -75,6 +75,7 @@ enum BoardingPassParser {
             }.replaceError(with: false)
 
             RightPaddedStringParser(length: 7)
+                .map(.string) // PNR
 
             Prefix(3).map(String.init) // origin
             Prefix(3).map(String.init) // destination
@@ -270,26 +271,26 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
         ParsePrint(.memberwise(ConditionalUniqueItems.init)) {
             HexLengthPrefixedParser {
-                RightPaddedStringParser(length: 1) // passenger description
+                RightPaddedStringParser(length: 1).map(.string) // passenger description
 
                 Optionally {
-                    RightPaddedStringParser(length: 1) // source of check-in
+                    RightPaddedStringParser(length: 1).map(.string) // source of check-in
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 1) // source of issuance
+                    RightPaddedStringParser(length: 1).map(.string) // source of issuance
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 4) // date of issuance, julian date, year is a leading digit
+                    RightPaddedStringParser(length: 4).map(.string) // date of issuance, julian date, year is a leading digit
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 1) // document type
+                    RightPaddedStringParser(length: 1).map(.string) // document type
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 3) // airline designator of issuer
+                    RightPaddedStringParser(length: 3).map(.string) // airline designator of issuer
                 }
 
                 Optionally {
@@ -308,42 +309,52 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
             HexLengthPrefixedParser {
                 Optionally {
                     RightPaddedStringParser(length: 3) // airline numeric code
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 10) // document number
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 1) // selectee indicator
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 1) // international document verification
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 3) // marketing carrier designator
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 3) // frequent flyer airline designator
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 16) // frequent flyer number
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 1) // ID/AD indicator
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 3) // free baggage allowance
+                        .map(.string)
                 }
 
                 Optionally {
                     RightPaddedStringParser(length: 1) // fast track
+                        .map(.string)
                 }
             }
 
