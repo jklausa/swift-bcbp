@@ -6,7 +6,7 @@ struct RawBoardingPass: Sendable, Codable, Hashable {
     var legsCount: Int
     // currently unused
 
-    var name: String
+    var name: Name
 
     var isEticket: Bool
 
@@ -67,7 +67,8 @@ enum BoardingPassParser {
         } with: {
             First().map(String.init) // format code
             First().map(String.init).map { Int($0) ?? 0 } // legs count
-            Prefix(20).map(String.init) // name?
+
+            NameParser()
 
             OneOf {
                 "E".map { true }
@@ -131,6 +132,29 @@ enum BoardingPassParser {
         return output
     }
 }
+
+public struct Name: Sendable, Codable, Hashable {
+    var lastName: String
+    var firstName: String?
+}
+
+public struct NameParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, Name> {
+        ParsePrint(.memberwise(Name.init)) {
+            RightPaddedStringParser(length: 20)
+                .pipe {
+                    Parse {
+                        Prefix(while: { $0 != "/" }).map(.string)
+                        Optionally {
+                            "/"
+                            Rest().map(.string)
+                        }
+                    }
+                }
+        }
+    }
+}
+
 
 // MARK: - SecurityData
 
