@@ -10,7 +10,7 @@ struct RawBoardingPass: Sendable, Codable {
 
     var isEticket: Bool
 
-    var pnr: PNR
+    var pnr: String
 
     var originAirportCode: String
     var destinationAirportCode: String
@@ -29,7 +29,7 @@ struct RawBoardingPass: Sendable, Codable {
 
     var variableSizeField: Int
 
-    var conditionalData: VersionSixConditionalItems?
+    var conditionalData: FirstSegmentConditionalItems?
 
     var securityData: SecurityData?
 }
@@ -74,7 +74,7 @@ enum BoardingPassParser {
                 " ".map { false }
             }.replaceError(with: false)
 
-            PNRParser()
+            RightPaddedStringParser(length: 7)
 
             Prefix(3).map(String.init) // origin
             Prefix(3).map(String.init) // destination
@@ -110,7 +110,7 @@ enum BoardingPassParser {
             TwoDigitHexStringToInt() // variable size field
 
             Optionally {
-                ConditionalItemsParser()
+                FirstSegmentConditionalItemsParser()
             }
 
             Optionally {
@@ -129,37 +129,6 @@ enum BoardingPassParser {
         return output
     }
 }
-
-// MARK: - PNR
-
-struct PNR: Codable, Sendable, Hashable {
-    var pnr: String
-    private(set) var rawPNR: String
-}
-
-// MARK: - PNRParser
-
-struct PNRParser: ParserPrinter {
-    var body: some Parser<Substring, PNR> {
-        Parse {
-            PNR(
-                pnr: $0.trimmingCharacters(in: .whitespaces),
-                rawPNR: String($0),
-            )
-        } with: {
-            Prefix(7)
-        }
-    }
-
-    // This needs to just right-pad the PNR, instead of outputting it raw.
-    // We actually need a generic purpose "right-pad" printer.
-    // I don't love the `raw` thing at all, but for now it should be fine.
-    func print(_ output: PNR, into input: inout Substring) throws {
-        input.prepend(contentsOf: output.rawPNR)
-    }
-}
-
-
 
 // MARK: - SecurityData
 
@@ -184,208 +153,86 @@ public struct SecurityDataParser: ParserPrinter {
     }
 }
 
-// MARK: - ConditionalItemsParser
+struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
+    var version: Version
 
-public struct ConditionalItemsParser: Parser {
-    public var body: some Parser<Substring, VersionSixConditionalItems> {
-        Parse {
-            (
-                passengerDescription: String,
-                sourceOfCheckin: String,
-                sourceOfIssuance: String,
-                dateOfIssuance: String,
-                documentType: String,
-                airlineDesignationOfIssuer: String,
-                baggageTags: BaggageTags?,
-                _: Int,
-                airlineNumericCode: String,
-                documentNumber: String,
-                selecteeIndicator: String,
-                docVerification: String?,
-                marketingCarrierDesignator: String?,
-                ffAirline: String?,
-                ffNumber: String?,
-                idADIndicator: String?,
-                luggageAllowance: String?,
-                fastTrack: String?,
-                airlinePrivateData: String?,
-            ) in
-            VersionSixConditionalItems(
-                passengerDescription: passengerDescription,
-                sourceOfCheckIn: sourceOfCheckin,
-                sourceOfIssuance: sourceOfIssuance,
-                dateOfIssuance: dateOfIssuance,
-                documentType: documentType,
-                airlineDesignatorOfIssuer: airlineDesignationOfIssuer,
-                firstBagNumber: baggageTags?.firstBagNumber ?? 0,
-                secondBagNumber: baggageTags?.secondBagNumber ?? 0,
-                thirdBagNumber: baggageTags?.thirdBagNumber ?? 0,
-                airlineNumericCode: airlineNumericCode,
-                documentNumber: documentNumber,
-                selecteeIndicator: selecteeIndicator,
-                internationalDocumentVerification: docVerification ?? "",
-                marketingCarrierDesignator: marketingCarrierDesignator ?? "",
-                frequentFlyerAirlineDesignator: ffAirline ?? "",
-                frequentFlyerNumber: ffNumber ?? "",
-                idAdIndicator: idADIndicator ?? "",
-                freeBaggageAllowance: luggageAllowance ?? "",
-                fastTrack: fastTrack ?? "",
-                airlinePrivateData: airlinePrivateData,
-            )
+    var conditionalUniqueItems: ConditionalUniqueItems
+    var conditionalRepeatingItems: ConditionalRepeatingItems
 
-        } with: {
+    public enum Version: Sendable, Hashable, Codable, Comparable {
+        case v1
+        case v2
+        case v3
+        case v4
+        case v5
+        case v6
+        case v7
+        case v8
+    }
+}
+
+
+struct FirstSegmentConditionalItemsParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, FirstSegmentConditionalItems> {
+        ParsePrint(.memberwise(FirstSegmentConditionalItems.init)) {
+            ">"
+            VersionParser()
+            ConditionalUniqueItemsParser()
+            ConditionalRepeatingItemsParser()
+        }
+    }
+
+    struct VersionParser: ParserPrinter {
+        var body: some ParserPrinter<Substring, FirstSegmentConditionalItems.Version> {
             OneOf {
-                ">6"
-                ">7"
-                ">8"
-                // V6 and V7 and V8 are (mostly) the same structure-wise, they just allow for additional states in some
-                // fields like gender markers, and change semantics of a couple of things (luggage registration plates)
-            }
-
-            HexLengthPrefixedParser {
-                Prefix(1).map(.string) // passenger description
-                Prefix(1).map(.string) // source of check-in
-                Prefix(1).map(.string) // source of issuance
-                Prefix(4).map(.string) // date of issuance
-                Prefix(1).map(.string) // document type
-                Prefix(3).map(.string) // airline designator of issuer
-
-                Optionally {
-                    BaggageTagParser()
-                }
-            }
-
-            TwoDigitHexStringToInt()
-
-            Prefix(3).map(.string) // airline numeric code
-            Prefix(10).map(.string) // document number
-
-            Prefix(1).map(.string) // selectee indicator
-            Optionally {
-                Prefix(1).map(.string) // international document verification
-            }
-
-            Optionally {
-                Prefix(3).map(.string) // marketing carrier designator
-            }
-
-            Optionally {
-                Prefix(3).map(.string) // frequent flyer airline designator
-            }
-            Optionally {
-                Prefix(16).map(.string) // frequent flyer number
-            }
-            Optionally {
-                Prefix(1).map(.string) // ID/AD indicator
-            }
-            Optionally {
-                Prefix(3).map(.string) // free baggage allowance
-            }
-            Optionally {
-                Prefix(1).map(.string) // fast track
-            }
-
-            Optionally {
-                Rest().map(.string) // airline private data
+                "1".map { FirstSegmentConditionalItems.Version.v1 }
+                "2".map { FirstSegmentConditionalItems.Version.v2 }
+                "3".map { FirstSegmentConditionalItems.Version.v3 }
+                "4".map { FirstSegmentConditionalItems.Version.v4 }
+                "5".map { FirstSegmentConditionalItems.Version.v5 }
+                "6".map { FirstSegmentConditionalItems.Version.v6 }
+                "7".map { FirstSegmentConditionalItems.Version.v7 }
+                "8".map { FirstSegmentConditionalItems.Version.v8 }
             }
         }
     }
 }
 
-// MARK: - BaggageTags
+// I hate this stupid name, but this is sorta-kinda-what the spec refers to it as.
+// All fields are marked as optional, because different versions of the spec have different fields, and airlines
+// frequently omit fields they don't care about.
+struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
+    var airlineNumericCode: String?
+    var documentNumber: String?
 
-struct BaggageTags: Sendable, Codable, Hashable {
-    var firstBagNumber: Int?
-    var secondBagNumber: Int?
-    var thirdBagNumber: Int?
-}
+    var selecteeIndicator: String?
+    var internationalDocumentVerification: String?
 
-// MARK: - BaggageTagParser
+    var marketingCarrierDesignator: String?
 
-struct BaggageTagParser: Parser {
-    var body: some Parser<Substring, BaggageTags> {
-        Parse { (bags: [Int]) -> BaggageTags in
-            let second: Int? = if bags.count > 1 { bags[1] } else { nil }
-            let third: Int? = if bags.count > 2 { bags[2] } else { nil }
-            return BaggageTags(
-                firstBagNumber: bags.first,
-                secondBagNumber: second,
-                thirdBagNumber: third,
-            )
-        } with: {
-            // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
-            // Nobody else does it like that but heyo!
-            Many(1 ... 3) {
-                OneOf {
-                    "             ".map { 0 }
-                    Digits(13)
-                }
-            }
-        }
-    }
-}
+    var frequentFlyerAirlineDesignator: String?
+    var frequentFlyerNumber: String?
 
-// MARK: - VersionSixConditionalItems
+    var idAdIndicator: String?
+    var freeBaggageAllowance: String?
 
-public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
-    var passengerDescription: String
-    var sourceOfCheckIn: String
-    var sourceOfIssuance: String
-    var dateOfIssuance: String
-    var documentType: String
-    var airlineDesignatorOfIssuer: String
-    var firstBagNumber: Int
-    var secondBagNumber: Int
-    var thirdBagNumber: Int
-
-    var airlineNumericCode: String // etix?
-    var documentNumber: String
-
-    var selecteeIndicator: String
-    var internationalDocumentVerification: String
-
-    var marketingCarrierDesignator: String
-
-    var frequentFlyerAirlineDesignator: String
-    var frequentFlyerNumber: String
-
-    var idAdIndicator: String
-    var freeBaggageAllowance: String
-    var fastTrack: String
+    var fastTrack: String?
 
     var airlinePrivateData: String?
 
-    public init(
-        passengerDescription: String,
-        sourceOfCheckIn: String,
-        sourceOfIssuance: String,
-        dateOfIssuance: String,
-        documentType: String,
-        airlineDesignatorOfIssuer: String,
-        firstBagNumber: Int,
-        secondBagNumber: Int,
-        thirdBagNumber: Int,
-        airlineNumericCode: String,
-        documentNumber: String,
-        selecteeIndicator: String,
-        internationalDocumentVerification: String,
-        marketingCarrierDesignator: String,
-        frequentFlyerAirlineDesignator: String,
-        frequentFlyerNumber: String,
-        idAdIndicator: String,
-        freeBaggageAllowance: String,
-        fastTrack: String,
-        airlinePrivateData: String? = nil,
+    init(
+        airlineNumericCode: String? = nil,
+        documentNumber: String? = nil,
+        selecteeIndicator: String? = nil,
+        internationalDocumentVerification: String? = nil,
+        marketingCarrierDesignator: String? = nil,
+        frequentFlyerAirlineDesignator: String? = nil,
+        frequentFlyerNumber: String? = nil,
+        idAdIndicator: String? = nil,
+        freeBaggageAllowance: String? = nil,
+        fastTrack: String? = nil,
+        airlinePrivateData: String? = nil
     ) {
-        self.passengerDescription = passengerDescription
-        self.sourceOfCheckIn = sourceOfCheckIn
-        self.sourceOfIssuance = sourceOfIssuance
-        self.dateOfIssuance = dateOfIssuance
-        self.documentType = documentType
-        self.airlineDesignatorOfIssuer = airlineDesignatorOfIssuer
-        self.firstBagNumber = firstBagNumber
-        self.secondBagNumber = secondBagNumber
-        self.thirdBagNumber = thirdBagNumber
         self.airlineNumericCode = airlineNumericCode
         self.documentNumber = documentNumber
         self.selecteeIndicator = selecteeIndicator
@@ -397,5 +244,145 @@ public struct VersionSixConditionalItems: Sendable, Codable, Hashable {
         self.freeBaggageAllowance = freeBaggageAllowance
         self.fastTrack = fastTrack
         self.airlinePrivateData = airlinePrivateData
+    }
+}
+
+struct ConditionalUniqueItems: Sendable, Codable, Hashable {
+    var passengerDescription: String
+    var sourceOfCheckIn: String?
+    var sourceOfIssuance: String?
+    var dateOfIssuance: String?
+    var documentType: String?
+    var airlineDesignatorOfIssuer: String?
+
+    var bags: [BaggageTag]?
+
+}
+
+struct ConditionalUniqueItemsParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
+        ParsePrint(.memberwise(ConditionalUniqueItems.init)) {
+            HexLengthPrefixedParser {
+                RightPaddedStringParser(length: 1) // passenger description
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // source of check-in
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // source of issuance
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 4) // date of issuance, julian date, year is a leading digit
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // document type
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 3) // airline designator of issuer
+                }
+
+                Optionally {
+                    BaggageTagParser()
+                }
+            }
+        }
+    }
+}
+
+struct ConditionalRepeatingItemsParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, ConditionalRepeatingItems> {
+        ParsePrint(.memberwise(ConditionalRepeatingItems.init)) {
+            HexLengthPrefixedParser {
+                Optionally {
+                    RightPaddedStringParser(length: 3) // airline numeric code
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 10) // document number
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // selectee indicator
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // international document verification
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 3) // marketing carrier designator
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 3) // frequent flyer airline designator
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 16) // frequent flyer number
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // ID/AD indicator
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 3) // free baggage allowance
+                }
+
+                Optionally {
+                    RightPaddedStringParser(length: 1) // fast track
+                }
+            }
+
+            Optionally {
+                Rest().map(.string) // airline private data
+            }
+        }
+    }
+}
+
+// MARK: - BaggageTags
+
+enum BaggageTag: Sendable, Codable, Hashable {
+    case emptyString
+    case registeredBag(Int)
+}
+
+// MARK: - BaggageTagParser
+
+struct BaggageTagParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, [BaggageTag]> {
+        Parse {
+            // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
+            // Nobody else does it like that but heyo!
+            Many(1 ... 3) {
+                OneOf {
+                    "             ".map { BaggageTag.emptyString }
+                    Digits(13).map { .registeredBag(Int($0))}
+                }
+                .printing { tag, input in
+                    switch tag {
+                    case .emptyString:
+                        input.prepend(contentsOf: Array(repeating: " ", count: 13))
+                    case .registeredBag(let number):
+                        guard number >= 0 else {
+                            throw BCBPError.bagNumberIsNegative
+                        }
+
+                        let numberString = String(format: "%013lu", number)
+
+                        guard numberString.count == 13 else {
+                            throw BCBPError.bagNumberTooBig
+                        }
+
+                        input.prepend(contentsOf: numberString)
+                    }
+                }
+            }
+        }
     }
 }
