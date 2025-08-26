@@ -30,25 +30,33 @@ struct RawBoardingPassParser: ParserPrinter {
             Prefix(1).map(.string) // e-ticket indicator
 
             FlightSegmentParser() // first flight segment
+
             Optionally {
                 OneOf {
-                    Parse {
-                        "00"
+                    HexLengthPrefixedParser {
                         FirstSegmentConditionalItemsParser()
                     }
                     Parse {
-                        HexLengthPrefixedParser {
-                            FirstSegmentConditionalItemsParser()
-                        }
+                        Skip { Prefix(2) }
+                            .printing{
+                                _,
+                                output in output.prepend(contentsOf: "00")
+                            }
+                        FirstSegmentConditionalItemsParser()
                     }
                     // Some airlines apparently can't be bothered to calculate the length of the conditional items,
                     // and just fill that field with all 00, and still put the conditional items after that.
                     // This lets those BPs still parse.
+                    // Some other just... miscalculate the length.
+                    // In those cases, we just always print out 00 as the length, which is technically wrong,
+                    // but at least lets us parse the BP.
                 }
             }
+
             Optionally {
                 SecurityDataParser()
             }
+            
             Optionally {
                 Rest().map(.string)
             }
@@ -162,7 +170,7 @@ struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
     var version: Version
 
     var conditionalUniqueItems: ConditionalUniqueItems
-    var conditionalRepeatingItems: ConditionalRepeatingItems
+    var conditionalRepeatingItems: ConditionalRepeatingItems?
 
     enum Version: Sendable, Hashable, Codable {
         case v1
@@ -185,7 +193,7 @@ struct FirstSegmentConditionalItemsParser: ParserPrinter {
             ">"
             VersionParser()
             ConditionalUniqueItemsParser()
-            ConditionalRepeatingItemsParser()
+            Optionally { ConditionalRepeatingItemsParser() }
         }
     }
 
