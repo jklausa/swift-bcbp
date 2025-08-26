@@ -309,3 +309,80 @@ func scandinavianEdgeCase() throws {
     let printedData = try parser.print(parsed)
     #expect(printedData == input)
 }
+
+@Test
+func fullBoardingPassRoundtripping() throws {
+    // This, again, is a BP from my real collection. I have redacted the etix and FF numbers.
+    // It is a rather complex one, with both conditional data and security data.
+    let input = "M1KLAUSA/JAN          EPNRLOL LAXBOGAV 0089 165C001A0002 35E>5180 M    BAV              2A13412345678900 AV LH 112233445566778     Y*30600000K09  LHS    F^460MEUCIQDJ7OXFa3N0Ng9zqVS7oKZLgiFPl/oxz6agwHjXe7hboQIgEv6vwIxfNHhG2ranP3tk8/2qdbTHFJS/5tfrgQzH3Bg="
+
+    let parser = RawBoardingPassParser()
+    let parsed = try parser.parse(input)
+
+    #expect(parsed.formatCode == "M")
+    #expect(parsed.legsCount == 1)
+    #expect(parsed.name.lastName == "KLAUSA")
+    #expect(parsed.name.firstName == "JAN")
+    #expect(parsed.isEticket == "E")
+
+    #expect(parsed.firstFlightSegment.PNR == "PNRLOL")
+    #expect(parsed.firstFlightSegment.originAirportCode == "LAX")
+    #expect(parsed.firstFlightSegment.destinationAirportCode == "BOG")
+    #expect(parsed.firstFlightSegment.carrierCode == "AV")
+    #expect(parsed.firstFlightSegment.flightNumber == "0089")
+    #expect(parsed.firstFlightSegment.julianFlightDate == 165)
+    #expect(parsed.firstFlightSegment.cabinClass == "C")
+    #expect(parsed.firstFlightSegment.seat == "001A")
+    #expect(parsed.firstFlightSegment.sequenceNumber == "0002 ")
+    #expect(parsed.firstFlightSegment.passengerStatus == "3")
+
+    #expect(parsed.conditionalData?.version == .v5)
+
+    #expect(parsed.conditionalData?.conditionalUniqueItems.passengerDescription == "0")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfCheckIn?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance == "M")
+    #expect(
+        parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
+            == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == "AV")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
+
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.airlineNumericCode == "134")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.documentNumber == "1234567890")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.selecteeIndicator == "0")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.marketingCarrierDesignator == "AV")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.frequentFlyerAirlineDesignator == "LH")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.frequentFlyerNumber == "112233445566778")
+
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.idAdIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.freeBaggageAllowance?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.fastTrack == "Y")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems.airlinePrivateData == "*30600000K09  LHS    F")
+
+    #expect(parsed.securityData?.type == "4")
+    #expect(parsed.securityData?.data == "MEUCIQDJ7OXFa3N0Ng9zqVS7oKZLgiFPl/oxz6agwHjXe7hboQIgEv6vwIxfNHhG2ranP3tk8/2qdbTHFJS/5tfrgQzH3Bg=")
+
+    let printed = try parser.print(parsed)
+    #expect(printed == input)
+}
+
+@Test
+func unknownConditionalDataVersionRoundTripping() throws {
+    let conditionalData = FirstSegmentConditionalItems(
+        version: .unknown("9"),
+        conditionalUniqueItems: .init(
+            passengerDescription: "0"
+        ),
+        conditionalRepeatingItems: .init()
+    )
+
+    let printer = FirstSegmentConditionalItemsParser()
+    let printed = try printer.print(conditionalData)
+    let parsed = try printer.parse(printed)
+
+    #expect(parsed.version == .unknown("9"))
+    #expect(conditionalData == parsed)
+    #expect(printed == ">901000")
+}

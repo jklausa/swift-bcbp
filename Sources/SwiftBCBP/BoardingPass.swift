@@ -173,6 +173,7 @@ struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
         case v6
         case v7
         case v8
+        case unknown(String)
     }
 }
 
@@ -199,6 +200,9 @@ struct FirstSegmentConditionalItemsParser: ParserPrinter {
                 "6".map { FirstSegmentConditionalItems.Version.v6 }
                 "7".map { FirstSegmentConditionalItems.Version.v7 }
                 "8".map { FirstSegmentConditionalItems.Version.v8 }
+                ParsePrint(.case(FirstSegmentConditionalItems.Version.unknown)) {
+                    Prefix(1).map(.string)
+                }
             }
         }
     }
@@ -385,24 +389,8 @@ struct BaggageTagParser: ParserPrinter {
             Many(1 ... 3) {
                 OneOf {
                     "             ".map { BaggageTag.emptyString }
-                    Digits(13).map { .registeredBag(Int($0)) }
-                }
-                .printing { tag, input in
-                    switch tag {
-                    case .emptyString:
-                        input.prepend(contentsOf: Array(repeating: " ", count: 13))
-                    case let .registeredBag(number):
-                        guard number >= 0 else {
-                            throw BCBPError.bagNumberIsNegative
-                        }
-
-                        let numberString = String(format: "%013lu", number)
-
-                        guard numberString.count == 13 else {
-                            throw BCBPError.bagNumberTooBig
-                        }
-
-                        input.prepend(contentsOf: numberString)
+                    ParsePrint(.case(BaggageTag.registeredBag)) {
+                        Digits(13)
                     }
                 }
             }
