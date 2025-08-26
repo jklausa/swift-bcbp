@@ -103,7 +103,8 @@ enum BoardingPassParser {
                 }
 
                 return sequence.trimmingCharacters(in: .whitespaces)
-            }.compactMap(Int.init) // sequence number
+            }
+            .compactMap(Int.init) // sequence number
 
             First().map(String.init) // passenger status
 
@@ -153,13 +154,15 @@ public struct SecurityDataParser: ParserPrinter {
     }
 }
 
+// MARK: - FirstSegmentConditionalItems
+
 struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
     var version: Version
 
     var conditionalUniqueItems: ConditionalUniqueItems
     var conditionalRepeatingItems: ConditionalRepeatingItems
 
-    public enum Version: Sendable, Hashable, Codable, Comparable {
+    enum Version: Sendable, Hashable, Codable, Comparable {
         case v1
         case v2
         case v3
@@ -171,6 +174,7 @@ struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
     }
 }
 
+// MARK: - FirstSegmentConditionalItemsParser
 
 struct FirstSegmentConditionalItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, FirstSegmentConditionalItems> {
@@ -197,6 +201,8 @@ struct FirstSegmentConditionalItemsParser: ParserPrinter {
         }
     }
 }
+
+// MARK: - ConditionalRepeatingItems
 
 // I hate this stupid name, but this is sorta-kinda-what the spec refers to it as.
 // All fields are marked as optional, because different versions of the spec have different fields, and airlines
@@ -231,7 +237,7 @@ struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
         idAdIndicator: String? = nil,
         freeBaggageAllowance: String? = nil,
         fastTrack: String? = nil,
-        airlinePrivateData: String? = nil
+        airlinePrivateData: String? = nil,
     ) {
         self.airlineNumericCode = airlineNumericCode
         self.documentNumber = documentNumber
@@ -247,6 +253,8 @@ struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
     }
 }
 
+// MARK: - ConditionalUniqueItems
+
 struct ConditionalUniqueItems: Sendable, Codable, Hashable {
     var passengerDescription: String
     var sourceOfCheckIn: String?
@@ -256,8 +264,9 @@ struct ConditionalUniqueItems: Sendable, Codable, Hashable {
     var airlineDesignatorOfIssuer: String?
 
     var bags: [BaggageTag]?
-
 }
+
+// MARK: - ConditionalUniqueItemsParser
 
 struct ConditionalUniqueItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
@@ -292,6 +301,8 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
         }
     }
 }
+
+// MARK: - ConditionalRepeatingItemsParser
 
 struct ConditionalRepeatingItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, ConditionalRepeatingItems> {
@@ -345,7 +356,7 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
     }
 }
 
-// MARK: - BaggageTags
+// MARK: - BaggageTag
 
 enum BaggageTag: Sendable, Codable, Hashable {
     case emptyString
@@ -362,13 +373,13 @@ struct BaggageTagParser: ParserPrinter {
             Many(1 ... 3) {
                 OneOf {
                     "             ".map { BaggageTag.emptyString }
-                    Digits(13).map { .registeredBag(Int($0))}
+                    Digits(13).map { .registeredBag(Int($0)) }
                 }
                 .printing { tag, input in
                     switch tag {
                     case .emptyString:
                         input.prepend(contentsOf: Array(repeating: " ", count: 13))
-                    case .registeredBag(let number):
+                    case let .registeredBag(number):
                         guard number >= 0 else {
                             throw BCBPError.bagNumberIsNegative
                         }

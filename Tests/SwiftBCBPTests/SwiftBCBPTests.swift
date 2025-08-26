@@ -108,7 +108,6 @@ func cathayEdgeCase() throws {
     #expect(printedData == input)
 }
 
-
 @Test
 func airFranceEdgeCase() async throws {
     // Those, again, are snippets from my real boarding pass, with the etix and FF redacted.
@@ -143,7 +142,7 @@ func airFranceEdgeCase() async throws {
     #expect(parsedWithFF.conditionalRepeatingItems.documentNumber == "1111111111")
     #expect(parsedWithFF.conditionalRepeatingItems.selecteeIndicator == "0")
     #expect(
-        parsedWithFF.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty == true
+        parsedWithFF.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty == true,
     )
     #expect(parsedWithFF.conditionalRepeatingItems.marketingCarrierDesignator?.isEmpty == true)
     #expect(parsedWithFF.conditionalRepeatingItems.frequentFlyerAirlineDesignator == "AZ")
@@ -211,7 +210,8 @@ func oldAirFranceEdgeCase() throws {
     #expect(parsed.conditionalRepeatingItems.selecteeIndicator == "0")
     #expect(
         parsed.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty
-        == true)
+            == true,
+    )
     #expect(parsed.conditionalRepeatingItems.marketingCarrierDesignator?.isEmpty == true)
     #expect(parsed.conditionalRepeatingItems.frequentFlyerAirlineDesignator == "AZ")
     #expect(parsed.conditionalRepeatingItems.frequentFlyerNumber == "0002222222")
@@ -245,7 +245,8 @@ func airBerlinEdgeCase() throws {
     #expect(parsed.conditionalRepeatingItems.selecteeIndicator == "0")
     #expect(
         parsed.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty
-        == true)
+            == true,
+    )
     #expect(parsed.conditionalRepeatingItems.marketingCarrierDesignator?.isEmpty == true)
     #expect(parsed.conditionalRepeatingItems.frequentFlyerAirlineDesignator == "AB")
     #expect(parsed.conditionalRepeatingItems.frequentFlyerNumber == "777777777")
@@ -278,7 +279,8 @@ func scandinavianEdgeCase() throws {
     #expect(parsed.conditionalRepeatingItems.selecteeIndicator == "0")
     #expect(
         parsed.conditionalRepeatingItems.internationalDocumentVerification?.isEmpty
-        == true)
+            == true,
+    )
     #expect(parsed.conditionalRepeatingItems.marketingCarrierDesignator == "SK")
     #expect(parsed.conditionalRepeatingItems.frequentFlyerAirlineDesignator == "TK")
     #expect(parsed.conditionalRepeatingItems.frequentFlyerNumber == "555555555")

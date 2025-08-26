@@ -1,5 +1,5 @@
-import Testing
 import Parsing
+import Testing
 @testable import SwiftBCBP
 
 @Test
@@ -51,13 +51,12 @@ func multiplePrefixedParsers() throws {
 
     let parsed = try parser.parse(originalString)
     #expect(parsed.0 == "HELLO  ")
-    #expect(parsed.1 == 12345678901)
+    #expect(parsed.1 == 12_345_678_901)
 
     var buffer = "" as Substring
     try parser.print(parsed, into: &buffer)
     #expect(buffer == originalString)
 }
-
 
 @Test
 func twoDigitHexParserThrowsOnTooLargeValue() {

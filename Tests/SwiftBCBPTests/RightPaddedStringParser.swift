@@ -1,5 +1,5 @@
-import Testing
 import Parsing
+import Testing
 @testable import SwiftBCBP
 
 @Test
@@ -29,6 +29,3 @@ func rightPaddedStringParserRoundtrippingWithoutSpaces() throws {
 
     #expect(buffer == input)
 }
-
-
-

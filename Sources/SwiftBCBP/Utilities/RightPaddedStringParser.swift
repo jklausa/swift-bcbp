@@ -14,7 +14,6 @@ struct RightPaddedStringParser: ParserPrinter {
 
                 return String(substring)
             }
-
     }
 
     func print(_ output: String, into input: inout Substring) throws {
