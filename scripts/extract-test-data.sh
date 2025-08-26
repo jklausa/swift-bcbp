@@ -20,6 +20,8 @@ extract_bcbp_data() {
         select(has("boardingPass"))
         # Filter out Deutsche Bahn train tickets (not BCBP compliant)
         | select(.passTypeIdentifier != "pass.com.deutschebahn.navigator")
+        # Filter out Trenitalia (not BCBP)
+        | select(.passTypeIdentifier != "pass.com.promptu.ProntoTreno")
         # Filter out Sixt car rental passes (not BCBP compliant)
         | select(.passTypeIdentifier != "pass.com.sixt.reservation")
         # Ensure there is a barcode message (handle both old and new Apple Wallet formats)
