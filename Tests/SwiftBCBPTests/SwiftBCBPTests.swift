@@ -300,4 +300,3 @@ func scandinavianEdgeCase() throws {
     let printedData = try parser.print(parsed)
     #expect(printedData == input)
 }
-}
