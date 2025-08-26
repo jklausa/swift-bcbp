@@ -1,88 +1,97 @@
+import Parsing
+
 // MARK: - RawBoardingPass
 
 struct RawBoardingPass: Sendable, Codable, Hashable {
     var formatCode: String
-
     var legsCount: Int
-    // currently unused
 
     var name: Name
+    var isEticket: String
 
-    var isEticket: Bool
+    var firstFlightSegment: FlightSegment
+    var conditionalData: FirstSegmentConditionalItems?
+    var securityData: SecurityData?
 
-    var pnr: String
+    var rest: String?
+    // Sometimes the BP contains extra data beyond what is supposed to be there according
+    // to the specified field lengths.
+    // We capture it here so we can round-trip the parsing perfectly if needed.
 
+    // include other flight segments??
+}
+
+struct RawBoardingPassParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, RawBoardingPass> {
+        ParsePrint(.memberwise(RawBoardingPass.init)) {
+            Prefix(1).map(.string) // format code
+            Digits(1) // legs count
+            NameParser()
+            Prefix(1).map(.string) // e-ticket indicator
+
+            FlightSegmentParser() // first flight segment
+            Optionally {
+                OneOf {
+                    Parse {
+                        "00"
+                        FirstSegmentConditionalItemsParser()
+                    }
+                    Parse {
+                        HexLengthPrefixedParser {
+                            FirstSegmentConditionalItemsParser()
+                        }
+                    }
+                    // Some airlines apparently can't be bothered to calculate the length of the conditional items,
+                    // and just fill that field with all 00, and still put the conditional items after that.
+                    // This lets those BPs still parse.
+                }
+            }
+            Optionally {
+                SecurityDataParser()
+            }
+            Optionally {
+                Rest().map(.string)
+            }
+        }
+    }
+}
+
+
+struct FlightSegment: Codable, Hashable, Sendable {
+    var PNR: String
     var originAirportCode: String
     var destinationAirportCode: String
 
     var carrierCode: String
-    var flightNumber: Int
+    var flightNumber: String
 
     var julianFlightDate: Int
 
     var cabinClass: String
 
     var seat: String
-    var sequenceNumber: Int
+    var sequenceNumber: String
+    // should we try to turn it into a digit?
 
     var passengerStatus: String
-
-    var variableSizeField: Int
-
-    var conditionalData: FirstSegmentConditionalItems?
-
-    var securityData: SecurityData?
 }
 
-// https://github.com/ncredinburgh/iata-parser/blob/master/src/main/java/com/ncredinburgh/iata/specs/CheckinSource.java
-
-import Parsing
-
-// MARK: - BoardingPassParser
-
-enum BoardingPassParser {
-    static func parse(input: String) throws -> RawBoardingPass {
-        let parser = Parse(input: Substring
-            .self)
-        { formatCode, legsCount, name, isEticket, pnr, originAirportCode, destinationAirportCode, carrierCode, flightNumber, julianFlightDate, cabinClass, seat, sequenceNumber, passengerStatus, variableSizeField, conditionalData, security, _ in
-            RawBoardingPass(
-                formatCode: formatCode,
-                legsCount: legsCount,
-                name: name,
-                isEticket: isEticket,
-                pnr: pnr,
-                originAirportCode: originAirportCode,
-                destinationAirportCode: destinationAirportCode,
-                carrierCode: carrierCode,
-                flightNumber: flightNumber,
-                julianFlightDate: julianFlightDate,
-                cabinClass: cabinClass,
-                seat: seat,
-                sequenceNumber: sequenceNumber,
-                passengerStatus: passengerStatus,
-                variableSizeField: variableSizeField,
-                conditionalData: conditionalData,
-                securityData: security,
-            )
-        } with: {
-            First().map(String.init) // format code
-            First().map(String.init).map { Int($0) ?? 0 } // legs count
-
-            NameParser()
-
-            OneOf {
-                "E".map { true }
-                " ".map { false }
-            }.replaceError(with: false)
-
+struct FlightSegmentParser: ParserPrinter {
+    var body: some ParserPrinter<Substring, FlightSegment> {
+        ParsePrint(.memberwise(FlightSegment.init)) {
             RightPaddedStringParser(length: 7)
                 .map(.string) // PNR
 
-            Prefix(3).map(String.init) // origin
-            Prefix(3).map(String.init) // destination
+            RightPaddedStringParser(length: 3)
+                .map(.string) // origin
+            RightPaddedStringParser(length: 3)
+                .map(.string) // destination
 
-            Prefix(3).map(String.init) // carrier
-            Prefix(5).map { $0.trimmingCharacters(in: .whitespaces) }.compactMap(Int.init) // flight number)
+            RightPaddedStringParser(length: 3)
+                .map(.string) // carrier
+
+            RightPaddedStringParser(length: 5)
+                .map(.string) // flight number
 
             Digits(3) // julian date
 
@@ -91,45 +100,15 @@ enum BoardingPassParser {
                 // whole cabin class, instead of using a single character, like the specs say.
                 "BUSINESS".map { "Business" }
                 "FIRST".map { "First" }
-                First().map(String.init) // cabin class
-            }
-            Prefix(4).map(String.init) // seat
+                Prefix(1).map(.string)
+            } // class
 
-            Prefix(5).map { sequence in
-                var sequence = sequence
-                // My AirCanada boarding passes have a sequence number that ends with an "A" character,
-                // which, contrary to one might expect, is not a hexadecimal "A", it seems to just be a suffix
-                // (or maybe a boarding group indicator? both of mine have "A", so whatcha gonna do).
-                if sequence.last == "A" {
-                    sequence.removeLast()
-                }
+            RightPaddedStringParser(length: 4).map(.string) // seat
 
-                return sequence.trimmingCharacters(in: .whitespaces)
-            }
-            .compactMap(Int.init) // sequence number
+            Prefix(5).map(.string)
 
-            First().map(String.init) // passenger status
-
-            TwoDigitHexStringToInt() // variable size field
-
-            Optionally {
-                FirstSegmentConditionalItemsParser()
-            }
-
-            Optionally {
-                Skip { Prefix(while: { $0 != "^" }) }
-                // I think this should be not needed after all the other printer/parsers are in place.
-                SecurityDataParser()
-            }
-
-            Optionally {
-                Rest()
-            }
+            Prefix(1).map(.string) // passenger status
         }
-
-        let output = try parser.parse(input)
-
-        return output
     }
 }
 

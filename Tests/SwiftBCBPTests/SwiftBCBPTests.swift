@@ -4,24 +4,33 @@ import Testing
 @testable import SwiftBCBP
 
 @Test("Test parsing", arguments: gatherTestCases())
-func BCBP5Example(testCase: BoardingPassTestCase) async throws {
-    let boardingPass = try? BoardingPassParser.parse(input: testCase.input)
+func parseAndValidateFields(testCase: BoardingPassTestCase) async throws {
+    do {
+        let boardingPass = try RawBoardingPassParser().parse(testCase.input)
 
-    let comment = if let filename = testCase.filename {
-        "Failed parsing: \(testCase.bracketedInput). To see the failing pass, run:\ncat \(filename) | json_pp"
-    } else {
-        "Failed parsing:\n\(testCase.bracketedInput)"
-    }
-
-    if testCase.input.contains(">") {
-        if boardingPass?.conditionalData == nil {
-            // swiftlint:disable:next no_print_statements
-            print("Failed parsing conditional data in:\n\(testCase.bracketedInput)")
+        withKnownIssue {
+            if testCase.input.contains(">") {
+                #expect(boardingPass.conditionalData != nil, "Failed parsing conditional data in:\n\(testCase.bracketedInput)")
+            }
+        } when: {
+            // This BP seems to have a completely malformed conditional data section.
+            // I will add it to the known issues for now, and add a test to illustrate the issue.
+            testCase.filename?
+                .hasSuffix("lK5p0BOtTw66-oDpYyI6pmwB920=.pkpass/pass.json") == true
         }
-        #expect(boardingPass?.conditionalData != nil)
-    }
 
-    #expect(boardingPass != nil, Comment(rawValue: comment))
+        if testCase.input.contains("^") {
+            #expect(boardingPass.securityData != nil, "Failed parsing security data in:\n\(testCase.bracketedInput)")
+        }
+    } catch {
+        let comment = if let filename = testCase.filename {
+            "Failed parsing: \(testCase.bracketedInput). To see the failing pass, run:\ncat \(filename) | json_pp"
+        } else {
+            "Failed parsing:\n\(testCase.bracketedInput)"
+        }
+
+        Issue.record(error, Comment(rawValue: comment))
+    }
 }
 
 @Test
