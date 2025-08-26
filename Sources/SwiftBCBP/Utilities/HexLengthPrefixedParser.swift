@@ -42,9 +42,11 @@ struct TwoDigitHexStringToInt: ParserPrinter {
         Prefix(2)
             .pipe { Int.parser(radix: 16) }
             .printing { value, input in
+                // We need custom printing, because we need a zero-padded value.
                 guard value >= 0, value <= 0xFF else {
                     throw BCBPError.hexValueTooBig
                 }
+
                 input.prepend(contentsOf: String(format: "%02X", value))
             }
     }

@@ -164,7 +164,7 @@ struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
     var conditionalUniqueItems: ConditionalUniqueItems
     var conditionalRepeatingItems: ConditionalRepeatingItems
 
-    enum Version: Sendable, Hashable, Codable, Comparable {
+    enum Version: Sendable, Hashable, Codable {
         case v1
         case v2
         case v3
