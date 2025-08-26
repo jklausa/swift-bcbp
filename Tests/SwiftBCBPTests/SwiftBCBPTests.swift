@@ -33,7 +33,7 @@ func securityDataRoundtripping() async throws {
     let parsedData = try securityDataParser.parse(securityData)
 
     #expect(parsedData.type == "4")
-    #expect(parsedData.length == 96)
+    #expect(parsedData.data.count == 96)
     #expect(parsedData
         .data == "MEUCIQCr+eKlAdvd6CbPfW8cQIK9nBLKO4VCPukkiIZ228CCOgIgRbQE76yR14GsbjvP6GKFl7tBhgMna+iMPvJwo+MrPI0=")
 

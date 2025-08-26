@@ -135,10 +135,7 @@ enum BoardingPassParser {
 
 public struct SecurityData: Codable, Sendable, Hashable {
     var type: String
-    var length: Int
     var data: String
-
-    // TODO: Should we calculate the length, instead of having a field for it?
 }
 
 // MARK: - SecurityDataParser
@@ -148,8 +145,9 @@ public struct SecurityDataParser: ParserPrinter {
         ParsePrint(.memberwise(SecurityData.init)) {
             "^"
             Prefix(1).map(.string)
-            TwoDigitHexStringToInt()
-            Rest().map(.string)
+            HexLengthPrefixedParser {
+                Rest().map(.string)
+            }
         }
     }
 }
