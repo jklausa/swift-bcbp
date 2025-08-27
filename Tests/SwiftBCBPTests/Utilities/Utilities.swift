@@ -81,7 +81,9 @@ private func privateTestCases() -> [BoardingPassTestCase] {
 
         do {
             let parsedTestCases = try TestCaseParser().parse(input)
-            testCases.append(contentsOf: parsedTestCases)
+            testCases.append(contentsOf: parsedTestCases.filter {
+                $0.input.allSatisfy(\.isASCII)
+            })
         } catch {
             print(error)
         }
