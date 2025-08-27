@@ -1,8 +1,39 @@
 #!/bin/bash
 
-# Output files for each source
-ICLOUD_OUTPUT="Tests/SwiftBCBPTests/Examples/bcbp-icloud-${USER}.txt"
-LOCAL_OUTPUT="Tests/SwiftBCBPTests/Examples/bcbp-local-${USER}.txt"
+is_in_repo() {
+    # Check for Package.swift (Swift package) and .git directory
+    if [ -f "Package.swift" ] && [ -d ".git" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# Function to set up output paths based on context
+setup_output_paths() {
+    if is_in_repo; then
+        # We're in the repository - use the test directory
+        OUTPUT_DIR="Tests/SwiftBCBPTests/Examples"
+        
+        # Create the directory if it doesn't exist
+        if [ ! -d "$OUTPUT_DIR" ]; then
+            echo "Creating output directory: $OUTPUT_DIR"
+            mkdir -p "$OUTPUT_DIR"
+        fi
+        
+        ICLOUD_OUTPUT="$OUTPUT_DIR/bcbp-icloud-${USER}.txt"
+        LOCAL_OUTPUT="$OUTPUT_DIR/bcbp-local-${USER}.txt"
+        echo "Running in repository mode - output will go to $OUTPUT_DIR/"
+    else
+        # Standalone mode - use current working directory
+        ICLOUD_OUTPUT="$PWD/bcbp-icloud-${USER}.txt"
+        LOCAL_OUTPUT="$PWD/bcbp-local-${USER}.txt"
+        echo "Running in standalone mode - output will go to current directory"
+    fi
+    echo ""
+}
+
+# Set up output paths based on context
+setup_output_paths
 
 # Source directories
 ICLOUD_DIR="${HOME}/Library/Mobile Documents/com~apple~shoebox/UbiquitousCards"
@@ -66,7 +97,19 @@ echo ""
 echo "Please note that the frequent flyer number, if contained, might be used"
 echo "to uniquely identify you, and/or h4x like Tony Abbott."
 echo ""
-read -p "Do you consent to extracting this data? (yes/no): " consent
+echo "Do you consent to extracting this data? (yes/no): "
+
+# Gonna be perfectly honest, this is way beyond my bash/shell scripting
+# knowledge and I let Claude handle this.
+# This is needed so that using this script via `curl | sh` work,
+# which is required, because I have a bunch of lazy friends who won't give me
+# their data unless I make it trivial for them.
+if exec 4</dev/tty 2>/dev/null; then
+    read consent <&4
+    exec 4<&-
+else
+    read consent
+fi
 if [ "$consent" != "yes" ]; then
     echo "Extraction cancelled."
     exit 1
