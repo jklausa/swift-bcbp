@@ -21,7 +21,7 @@ There are also a number of workarounds for spec violations in the wild that I've
 
 If you find a BP that doesn't parse, please open an issue! Ideally you'd include a redacted version of the BP, or reach out privately with the "actual" BP data.
 
-The library passes tests on my collection of boarding passes, including those graciously donated by my friends and family — all in all, my personal collection contains around 500 test cases.
+The library passes tests on my collection of boarding passes, including those graciously donated by my friends and family — all in all, my personal collection contains almost 700 test cases.
 
 Printing support is partially there — the library can print most boarding passes, but there are (many!) cases where it doesn't do perfect round-tripping yet. 
 
