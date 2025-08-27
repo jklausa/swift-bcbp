@@ -21,7 +21,6 @@ struct RawBoardingPass: Sendable, Codable, Hashable {
     // to the specified field lengths.
     // We capture it here so we can round-trip the parsing perfectly if needed.
 
-    // include other flight segments??
 }
 
 struct RawBoardingPassParser: ParserPrinter {
@@ -57,10 +56,10 @@ struct RawBoardingPassParser: ParserPrinter {
             }
 
             Optionally {
-                // ... I think?
-                // I don't think there would be space to encode as many as 9, but I don't think the spec limits
-                // it anywhere?
-                Many(1...9) {
+                // The publicly available spec says:
+                // "The BCBP standard enables the encoding up to four flight legs in the same BCBP."
+                // That would mean up to 3 additional segments after the first one.
+                Many(1...3) {
                     Parse(.memberwise(OtherSegments.init)) {
                         FlightSegmentParser()
                         HexLengthPrefixedParser {
