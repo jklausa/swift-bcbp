@@ -18,6 +18,19 @@ func parseAndValidateFields(testCase: BoardingPassTestCase) async throws {
         if testCase.input.contains("^") {
             #expect(boardingPass.securityData != nil, "Failed parsing security data in:\n\(testCase.bracketedInput)")
         }
+
+        let printed = try RawBoardingPassParser().print(boardingPass)
+        withKnownIssue {
+            #expect(
+                printed.uppercased() == testCase.input.uppercased(),
+                "Failed printing back to original in:\n\(testCase.bracketedInput)"
+            )
+        } when: {
+            // If the pass has malformed header field, we don't support printing it back to the original just yet.
+            testCase.input.contains("00>") ||
+            testCase.filename?.contains("lK5p0BOtTw66-oDpYyI6pmwB920=.pkpass") == true || // knownIssueLATAM
+            testCase.filename?.contains("XE6hwWwe+-5Hg-Dgpr7lUDn8OaE=.pkpass") == true // airBerlinYoshiEdgeCase
+        }
     } catch {
         let comment = if let filename = testCase.filename {
             "Failed parsing: \(testCase.bracketedInput). To see the failing pass, run:\ncat \(filename) | json_pp"
@@ -437,6 +450,9 @@ func knownIssueLATAM() throws {
             parsed.conditionalData?.conditionalRepeatingItems != nil,
             "Failed parsing conditional repeating data in:\n\(input)",
         )
+
+        let printed = try parser.print(parsed)
+        #expect(printed == input)
     }
 }
 
@@ -782,6 +798,9 @@ func airBerlinYoshiEdgeCase() throws {
             parsed.conditionalData?.conditionalRepeatingItems != nil,
             "Failed parsing conditional repeating data in:\n\(input)",
         )
+
+        let printed = try parser.print(parsed)
+        #expect(printed == input)
     }
     #expect(parsed.rest == "2A7123987654321 0   AB123456789           N")
 }
