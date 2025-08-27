@@ -29,7 +29,7 @@ struct RawBoardingPassParser: ParserPrinter {
             Prefix(1).map(.string) // format code
             Digits(1) // legs count
             NameParser()
-            Prefix(1).map(.string) // e-ticket indicator
+            RightPaddedStringParser(length: 1).map(.string) // e-ticket indicator
 
             FlightSegmentParser() // first flight segment
 
@@ -109,21 +109,32 @@ struct FlightSegment: Codable, Hashable, Sendable {
 struct FlightSegmentParser: ParserPrinter {
     var body: some ParserPrinter<Substring, FlightSegment> {
         ParsePrint(.memberwise(FlightSegment.init)) {
+            
             RightPaddedStringParser(length: 7)
                 .map(.string) // PNR
-
+            
             RightPaddedStringParser(length: 3)
                 .map(.string) // origin
             RightPaddedStringParser(length: 3)
                 .map(.string) // destination
-
+            
             RightPaddedStringParser(length: 3)
                 .map(.string) // carrier
-
+            
             RightPaddedStringParser(length: 5)
                 .map(.string) // flight number
+            
+            Prefix(3) // julian flight date
+            // In ideal world, this would've just been `Digits(3)`.
+            // But I've found a boarding pass that instead of padding the date with leading zero as the spec says,
+            // it pads it with spaces.
+            // So we have to be more flexible in what we accept.
+                .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+                .printing { int, output in
+                    output.prepend(contentsOf: String(format: "%03d", int))
+                    // This will break round-tripping for poorly-formatted BPs, but at least it will let us parse them.
+                }
 
-            Digits(3) // julian date
 
             OneOf {
                 // Some of my Qatar Airways boarding passes have a cabin class field that just spells out the
@@ -292,7 +303,7 @@ struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
 // MARK: - ConditionalUniqueItems
 
 struct ConditionalUniqueItems: Sendable, Codable, Hashable {
-    var passengerDescription: String
+    var passengerDescription: String?
     var sourceOfCheckIn: String?
     var sourceOfIssuance: String?
     var dateOfIssuance: String?
@@ -308,7 +319,9 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
         ParsePrint(.memberwise(ConditionalUniqueItems.init)) {
             HexLengthPrefixedParser {
-                RightPaddedStringParser(length: 1).map(.string) // passenger description
+                Optionally {
+                    RightPaddedStringParser(length: 1).map(.string) // passenger description
+                }
 
                 Optionally {
                     RightPaddedStringParser(length: 1).map(.string) // source of check-in
@@ -369,9 +382,10 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
                         .map(.string)
                 }
 
+
                 Optionally {
-                    RightPaddedStringParser(length: 3) // frequent flyer airline designator
-                        .map(.string)
+                        RightPaddedStringParser(length: 3) // frequent flyer airline designator
+                            .map(.string)
                 }
 
                 Optionally {
