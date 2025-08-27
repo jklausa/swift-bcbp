@@ -615,5 +615,97 @@ func multiLegFlight() throws {
     let printed = try parser.print(created)
 
     #expect(printed == input)
+}
 
+@Test
+func realWorldTwoSegment() throws {
+    // This is not from my collection, but a example I found online, when someone posted their BP on a forum.
+    // I have redacted the name, PNR, etix and FF numbers.
+    let input = "M2GUY/SOME            EABC123 LAXCDGAF 4097 356J070A0174 347>2180      B                29             0                           ABC123 CDGTLSAF 7794 357Y006A0006 32B29             0    AF 1112223334/P        "
+
+    let parser = RawBoardingPassParser()
+
+    let parsed = try parser.parse(input)
+
+    #expect(parsed.formatCode == "M")
+    #expect(parsed.legsCount == 2)
+    #expect(parsed.name.lastName == "GUY")
+    #expect(parsed.name.firstName == "SOME")
+    #expect(parsed.isEticket == "E")
+
+    #expect(parsed.firstFlightSegment.PNR == "ABC123")
+    #expect(parsed.firstFlightSegment.originAirportCode == "LAX")
+    #expect(parsed.firstFlightSegment.destinationAirportCode == "CDG")
+    #expect(parsed.firstFlightSegment.carrierCode == "AF")
+    #expect(parsed.firstFlightSegment.flightNumber == "4097")
+    #expect(parsed.firstFlightSegment.julianFlightDate == 356)
+    #expect(parsed.firstFlightSegment.cabinClass == "J")
+    #expect(parsed.firstFlightSegment.seat == "070A")
+    #expect(parsed.firstFlightSegment.sequenceNumber == "0174 ")
+    #expect(parsed.firstFlightSegment.passengerStatus == "3")
+
+    #expect(parsed.conditionalData?.version == .v2)
+
+    #expect(parsed.conditionalData?.conditionalUniqueItems.passengerDescription == "0")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfCheckIn?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance?.isEmpty == true)
+    #expect(
+        parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
+        == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
+
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator == "0")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator == "")
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true
+    )
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true
+    )
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.fastTrack == nil)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == nil)
+
+    #expect(parsed.otherSegments?.count == 1)
+
+    let secondSegment = parsed.otherSegments?.first
+
+    #expect(secondSegment?.segment.PNR == "ABC123")
+    #expect(secondSegment?.segment.originAirportCode == "CDG")
+    #expect(secondSegment?.segment.destinationAirportCode == "TLS")
+    #expect(secondSegment?.segment.carrierCode == "AF")
+    #expect(secondSegment?.segment.flightNumber == "7794")
+    #expect(secondSegment?.segment.julianFlightDate == 357)
+    #expect(secondSegment?.segment.cabinClass == "Y")
+    #expect(secondSegment?.segment.seat == "006A")
+    #expect(secondSegment?.segment.sequenceNumber == "0006 ")
+    #expect(secondSegment?.segment.passengerStatus == "3")
+
+    #expect(secondSegment?.repeatingItems?.airlineNumericCode?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.documentNumber?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.selecteeIndicator == "0")
+    #expect(secondSegment?.repeatingItems?.internationalDocumentVerification?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.marketingCarrierDesignator?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.frequentFlyerAirlineDesignator == "AF")
+    #expect(secondSegment?.repeatingItems?.frequentFlyerNumber == "1112223334/P")
+    #expect(secondSegment?.repeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.fastTrack == nil)
+    #expect(secondSegment?.repeatingItems?.airlinePrivateData == nil)
+
+    #expect(parsed.securityData == nil)
+    #expect(parsed.rest == nil)
+
+    withKnownIssue {
+        // This seems to try to print out `00` as the header for the conditional data, instead of actual value (47).
+        // I'm not sure why, but the whole printing is not fully tested yet, so leaving it in known-issue for now.
+        let printed = try parser.print(parsed)
+        #expect(printed == input)
+    }
 }
