@@ -36,22 +36,45 @@ struct RawBoardingPassParser: ParserPrinter {
 
             Optionally {
                 OneOf {
-                    HexLengthPrefixedParser {
-                        FirstSegmentConditionalItemsParser()
-                    }
-                    Parse {
-                        Skip { Prefix(2) }
-                            .printing { _, output in
-                                output.prepend(contentsOf: "00")
-                            }
-                        FirstSegmentConditionalItemsParser()
-                    }
                     // Some airlines apparently can't be bothered to calculate the length of the conditional items,
                     // and just fill that field with all 00, and still put the conditional items after that.
-                    // This lets those BPs still parse.
                     // Some other just... miscalculate the length.
-                    // In those cases, we just always print out 00 as the length, which is technically wrong,
-                    // but at least lets us parse the BP.
+                    Parse {
+                        // We go trough a bunch of stupid hooks to be able to print out the wrong length again.
+                        // This is extremely inefficient, because it first tries to parse the whole thing _correctly_,
+                        // then it throws away the result and reparses it with the wrong length.
+                        //
+                        // There must be a better way.
+                        // But it's done this way for now because:
+                        // - if the parsers are in a different order, then when printing, _this_ parser will be chosen,
+                        // and we'll end up printing the wrong length even for well-formed BPs.
+                        // - if we get rid of the `Not` parser, then when parsing, _this_ parser will be chosen,
+                        // and we'll fail to pretty-print well-formed BPs that have a correct length.
+                        Not {
+                            Peek {
+                                HexLengthPrefixedParser {
+                                    FirstSegmentConditionalItemsParser()
+                                }
+                            }
+                        }
+                        Skip {
+                            Prefix(2)
+                        }
+                        .printing { _, output in
+                            output.prepend(contentsOf: "00")
+                        }
+                        // This lets those BPs still parse.
+                        // In those cases, we just always print out 00 as the length, which is technically wrong,
+                        // but at least lets us parse the BP.
+
+                        FirstSegmentConditionalItemsParser()
+                    }
+
+                    Parse {
+                        HexLengthPrefixedParser {
+                            FirstSegmentConditionalItemsParser()
+                        }
+                    }
                 }
             }
 
@@ -427,6 +450,7 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
 
 enum BaggageTag: Sendable, Codable, Hashable {
     case emptyString
+    case literalZero
     case registeredBag(Int)
 }
 
@@ -440,6 +464,8 @@ struct BaggageTagParser: ParserPrinter {
             Many(1 ... 3) {
                 OneOf {
                     "             ".map { BaggageTag.emptyString }
+                    "0            ".map { BaggageTag.literalZero }
+                    // I have an AY that indicates no bags like this.
                     ParsePrint(.case(BaggageTag.registeredBag)) {
                         Digits(13)
                     }

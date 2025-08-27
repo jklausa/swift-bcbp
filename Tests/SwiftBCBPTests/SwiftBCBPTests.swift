@@ -716,13 +716,9 @@ func realWorldTwoSegment() throws {
 
     #expect(parsed.securityData == nil)
     #expect(parsed.rest == nil)
-
-    withKnownIssue {
-        // This seems to try to print out `00` as the header for the conditional data, instead of actual value (47).
-        // I'm not sure why, but the whole printing is not fully tested yet, so leaving it in known-issue for now.
-        let printed = try parser.print(parsed)
-        #expect(printed == input)
-    }
+    
+    let printed = try parser.print(parsed)
+    #expect(printed == input)
 }
 
 @Test
@@ -736,6 +732,8 @@ func airBerlinYoshiEdgeCase() throws {
     // is specified as "AB", instead
     // of "AB " (with a trailing space). This messes up the parsing of the rest of the fields, making it impossible to
     // parse correctly.
+    // Funilly enough, the header lengths are also incorrect for the _actual_ data that is present, but
+    // would be matching if the FF airline field was correctly padded!
     let input = "M1NOT/JOSH            E       CTATXLAB 8783   1Y013D0001 162>5321OR6365BAZ                                        2A7123987654321 0   AB123456789           N"
     let parser = RawBoardingPassParser()
     let parsed = try parser.parse(input)
@@ -905,4 +903,60 @@ func norwegianConditionalDataEdgeCase() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == "328-1234567890")
 
     #expect(parsed.rest == nil)
+}
+
+@Test
+func finnairLuggageDumbness() throws {
+    let input = "M1KLAUSA/JAN          EWHYAYE HELBERAY 1435 345Y025A0021 34A>5180 W    BAY 0            2A1059991113332  AY BA 12345678            Y2Y"
+    let parser = RawBoardingPassParser()
+
+    let parsed = try parser.parse(input)
+
+    #expect(parsed.formatCode == "M")
+    #expect(parsed.legsCount == 1)
+    #expect(parsed.name.lastName == "KLAUSA")
+    #expect(parsed.name.firstName == "JAN")
+    #expect(parsed.isEticket == "E")
+    #expect(parsed.firstFlightSegment.PNR == "WHYAYE")
+    #expect(parsed.firstFlightSegment.originAirportCode == "HEL")
+    #expect(parsed.firstFlightSegment.destinationAirportCode == "BER")
+    #expect(parsed.firstFlightSegment.carrierCode == "AY")
+    #expect(parsed.firstFlightSegment.flightNumber == "1435")
+    #expect(parsed.firstFlightSegment.julianFlightDate == 345)
+    #expect(parsed.firstFlightSegment.cabinClass == "Y")
+    #expect(parsed.firstFlightSegment.seat == "025A")
+    #expect(parsed.firstFlightSegment.sequenceNumber == "0021 ")
+    #expect(parsed.firstFlightSegment.passengerStatus == "3")
+    #expect(parsed.conditionalData?.version == .v5)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.passengerDescription == "0")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfCheckIn?.isEmpty ==
+        true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance == "W")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
+        == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == "AY")
+
+    // why.
+    #expect(
+        parsed.conditionalData?.conditionalUniqueItems.bags == [.literalZero]
+    )
+
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode == "105")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber == "9991113332")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator == "AY")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator == "BA")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber == "12345678")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.fastTrack == "Y")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == "2Y")
+
+    #expect(parsed.securityData == nil)
+    #expect(parsed.rest == nil)
+
+    let printed = try parser.print(parsed)
+    #expect(printed == input)
 }
