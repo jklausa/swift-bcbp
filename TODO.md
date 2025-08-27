@@ -1,6 +1,5 @@
 to not be embarassed:
 
-* support for multiple legs (probably the most important)
 * write tests for round-tripping
     * fix round-tripping for spec-violating BPs
 * test with more BPs

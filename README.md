@@ -16,9 +16,16 @@ A "strict" mode, where out-of-specs behavior is corrected when outputting might 
 
 ## Status
 
-Very much WIP, not ready for any kind of usage.
+Parsing support is fairly robust, tested on many real-world boarding passes, and should pass for _almost all_ **spec-compliant** boarding passes, including boarding-passes with multiple legs encoded, and other rarely seen features.
+There are also a number of workarounds for spec violations in the wild that I've managed to track down using the passes I could get my hands on.
 
-Based on my personal (300+) collection of boarding passes, which should be plenty of test data; in addition to the reference of the BCBP implementation guide.
+If you find a BP that doesn't parse, please open an issue! Ideally you'd include a redacted version of the BP, or reach out privately with the "actual" BP data.
+
+The library passes tests on my collection of boarding passes, including those graciously donated by my friends and family — all in all, my personal collection contains around 500 test cases.
+
+Printing support is partially there — the library can print most boarding passes, but there are (many!) cases where it doesn't do perfect round-tripping yet. 
+
+This is a work in progress.
 
 ## Test data
 
