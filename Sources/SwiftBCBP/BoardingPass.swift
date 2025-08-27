@@ -20,8 +20,9 @@ struct RawBoardingPass: Sendable, Codable, Hashable {
     // Sometimes the BP contains extra data beyond what is supposed to be there according
     // to the specified field lengths.
     // We capture it here so we can round-trip the parsing perfectly if needed.
-
 }
+
+// MARK: - RawBoardingPassParser
 
 struct RawBoardingPassParser: ParserPrinter {
     var body: some ParserPrinter<Substring, RawBoardingPass> {
@@ -40,9 +41,8 @@ struct RawBoardingPassParser: ParserPrinter {
                     }
                     Parse {
                         Skip { Prefix(2) }
-                            .printing{
-                                _,
-                                output in output.prepend(contentsOf: "00")
+                            .printing { _, output in
+                                output.prepend(contentsOf: "00")
                             }
                         FirstSegmentConditionalItemsParser()
                     }
@@ -59,7 +59,7 @@ struct RawBoardingPassParser: ParserPrinter {
                 // The publicly available spec says:
                 // "The BCBP standard enables the encoding up to four flight legs in the same BCBP."
                 // That would mean up to 3 additional segments after the first one.
-                Many(1...3) {
+                Many(1 ... 3) {
                     Parse(.memberwise(OtherSegments.init)) {
                         FlightSegmentParser()
                         HexLengthPrefixedParser {
@@ -74,7 +74,7 @@ struct RawBoardingPassParser: ParserPrinter {
             Optionally {
                 SecurityDataParser()
             }
-            
+
             Optionally {
                 Rest().map(.string)
             }
@@ -82,10 +82,14 @@ struct RawBoardingPassParser: ParserPrinter {
     }
 }
 
+// MARK: - OtherSegments
+
 struct OtherSegments: Codable, Hashable, Sendable {
     var segment: FlightSegment
     var repeatingItems: ConditionalRepeatingItems?
 }
+
+// MARK: - FlightSegment
 
 struct FlightSegment: Codable, Hashable, Sendable {
     var PNR: String
@@ -106,35 +110,35 @@ struct FlightSegment: Codable, Hashable, Sendable {
     var passengerStatus: String
 }
 
+// MARK: - FlightSegmentParser
+
 struct FlightSegmentParser: ParserPrinter {
     var body: some ParserPrinter<Substring, FlightSegment> {
         ParsePrint(.memberwise(FlightSegment.init)) {
-            
             RightPaddedStringParser(length: 7)
                 .map(.string) // PNR
-            
+
             RightPaddedStringParser(length: 3)
                 .map(.string) // origin
             RightPaddedStringParser(length: 3)
                 .map(.string) // destination
-            
+
             RightPaddedStringParser(length: 3)
                 .map(.string) // carrier
-            
+
             RightPaddedStringParser(length: 5)
                 .map(.string) // flight number
-            
+
             Prefix(3) // julian flight date
-            // In ideal world, this would've just been `Digits(3)`.
-            // But I've found a boarding pass that instead of padding the date with leading zero as the spec says,
-            // it pads it with spaces.
-            // So we have to be more flexible in what we accept.
+                // In ideal world, this would've just been `Digits(3)`.
+                // But I've found a boarding pass that instead of padding the date with leading zero as the spec says,
+                // it pads it with spaces.
+                // So we have to be more flexible in what we accept.
                 .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
                 .printing { int, output in
                     output.prepend(contentsOf: String(format: "%03d", int))
                     // This will break round-tripping for poorly-formatted BPs, but at least it will let us parse them.
                 }
-
 
             OneOf {
                 // Some of my Qatar Airways boarding passes have a cabin class field that just spells out the
@@ -153,10 +157,14 @@ struct FlightSegmentParser: ParserPrinter {
     }
 }
 
+// MARK: - Name
+
 public struct Name: Sendable, Codable, Hashable {
     var lastName: String
     var firstName: String?
 }
+
+// MARK: - NameParser
 
 public struct NameParser: ParserPrinter {
     public var body: some ParserPrinter<Substring, Name> {
@@ -174,7 +182,6 @@ public struct NameParser: ParserPrinter {
         }
     }
 }
-
 
 // MARK: - SecurityData
 
@@ -332,7 +339,8 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 4).map(.string) // date of issuance, julian date, year is a leading digit
+                    RightPaddedStringParser(length: 4)
+                        .map(.string) // date of issuance, julian date, year is a leading digit
                 }
 
                 Optionally {
@@ -382,10 +390,9 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
                         .map(.string)
                 }
 
-
                 Optionally {
-                        RightPaddedStringParser(length: 3) // frequent flyer airline designator
-                            .map(.string)
+                    RightPaddedStringParser(length: 3) // frequent flyer airline designator
+                        .map(.string)
                 }
 
                 Optionally {

@@ -9,7 +9,10 @@ func parseAndValidateFields(testCase: BoardingPassTestCase) async throws {
         let boardingPass = try RawBoardingPassParser().parse(testCase.input)
 
         if testCase.input.contains(">") {
-            #expect(boardingPass.conditionalData != nil, "Failed parsing conditional data in:\n\(testCase.bracketedInput)")
+            #expect(
+                boardingPass.conditionalData != nil,
+                "Failed parsing conditional data in:\n\(testCase.bracketedInput)",
+            )
         }
 
         if testCase.input.contains("^") {
@@ -336,7 +339,8 @@ func fullBoardingPassRoundtripping() throws {
     #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance == "M")
     #expect(
         parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
-            == true)
+            == true,
+    )
     #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
     #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == "AV")
     #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
@@ -355,7 +359,8 @@ func fullBoardingPassRoundtripping() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == "*30600000K09  LHS    F")
 
     #expect(parsed.securityData?.type == "4")
-    #expect(parsed.securityData?.data == "MEUCIQDJ7OXFa3N0Ng9zqVS7oKZLgiFPl/oxz6agwHjXe7hboQIgEv6vwIxfNHhG2ranP3tk8/2qdbTHFJS/5tfrgQzH3Bg=")
+    #expect(parsed.securityData?
+        .data == "MEUCIQDJ7OXFa3N0Ng9zqVS7oKZLgiFPl/oxz6agwHjXe7hboQIgEv6vwIxfNHhG2ranP3tk8/2qdbTHFJS/5tfrgQzH3Bg=")
 
     let printed = try parser.print(parsed)
     #expect(printed == input)
@@ -366,9 +371,9 @@ func unknownConditionalDataVersionRoundTripping() throws {
     let conditionalData = FirstSegmentConditionalItems(
         version: .unknown("9"),
         conditionalUniqueItems: .init(
-            passengerDescription: "0"
+            passengerDescription: "0",
         ),
-        conditionalRepeatingItems: .init()
+        conditionalRepeatingItems: .init(),
     )
 
     let printer = FirstSegmentConditionalItemsParser()
@@ -389,7 +394,8 @@ func knownIssueLATAM() throws {
     // The `99999999` is a redacted FF number, and the `LA ` previously would suggest that it would be a LATAM FF#,
     // but it was, in fact, a BA FF#, making this even more confusing.
     //
-    // Another issue, that is much harder to spot — the specified length of the data after the first flight segment is not
+    // Another issue, that is much harder to spot — the specified length of the data after the first flight segment is
+    // not
     // matching up with what actually is there. The BP says `0x3D`, but the actual data is 11 characters short.
     let input = "M1KLAUSA/JAN          EPNRRNP BOGSCLLA 0575 167Y013A0069 13D>10B0MM9167BLA 29 1045LA 99999999            111"
     let parser = RawBoardingPassParser()
@@ -429,7 +435,7 @@ func knownIssueLATAM() throws {
     withKnownIssue {
         #expect(
             parsed.conditionalData?.conditionalRepeatingItems != nil,
-            "Failed parsing conditional repeating data in:\n\(input)"
+            "Failed parsing conditional repeating data in:\n\(input)",
         )
     }
 }
@@ -467,7 +473,8 @@ func multiLegFlight() throws {
     #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance?.isEmpty == true)
     #expect(
         parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
-        == true)
+            == true,
+    )
     #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
     #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == "1A")
     #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
@@ -476,12 +483,14 @@ func multiLegFlight() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber == "2300491111")
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator == "1")
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
-    #expect(parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator == "")
     #expect(
-        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true
+        parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator?.isEmpty == true
     )
     #expect(
-        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true,
+    )
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true,
     )
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
@@ -510,7 +519,8 @@ func multiLegFlight() throws {
     #expect(secondSegment?.repeatingItems?.marketingCarrierDesignator?.isEmpty == true)
     #expect(
         secondSegment?.repeatingItems?.frequentFlyerAirlineDesignator?.isEmpty
-        == true)
+            == true,
+    )
     #expect(secondSegment?.repeatingItems?.frequentFlyerNumber?.isEmpty == true)
     #expect(secondSegment?.repeatingItems?.idAdIndicator?.isEmpty == true)
     #expect(secondSegment?.repeatingItems?.freeBaggageAllowance?.isEmpty == true)
@@ -521,7 +531,8 @@ func multiLegFlight() throws {
     #expect(parsed.rest == nil)
 }
 
-@Test func multiLegSpecExample() async throws {
+@Test
+func multiLegSpecExample() async throws {
     // This is the example from the v5 of the BCBP spec, verabatim.
     let input = "M2DESMARAIS/LUC       EABC123 YULFRAAC 0834 226F001A0025 14D>6181WW6225BAC 00141234560032A0141234567890 1AC AC 1234567890123    20KYLX58ZDEF456 FRAGVALH 3664 227C012C0002 12E2A0140987654321 1AC AC 1234567890123    2PCNWQ^164GIWVC5EH7JNT684FVNJ91W2QA4DVN5J8K4F0L0GEQ3DF5TGBN8709HKT5D3DW3GBHFCVHMY7J5T6HFR41W2QA4DVN5J8K4F0L0GE"
 
@@ -558,7 +569,7 @@ func multiLegFlight() throws {
                 dateOfIssuance: "6225",
                 documentType: "B",
                 airlineDesignatorOfIssuer: "AC",
-                bags: [.registeredBag(0_014_123456_003)]
+                bags: [.registeredBag(0_014_123_456_003)],
             ),
             conditionalRepeatingItems: .init(
                 airlineNumericCode: "014",
@@ -572,7 +583,7 @@ func multiLegFlight() throws {
                 freeBaggageAllowance: "20K",
                 fastTrack: "Y",
                 airlinePrivateData: "LX58Z",
-            )
+            ),
         ),
         otherSegments: [
             .init(
@@ -586,7 +597,7 @@ func multiLegFlight() throws {
                     cabinClass: "C",
                     seat: "012C",
                     sequenceNumber: "0002 ",
-                    passengerStatus: "1"
+                    passengerStatus: "1",
                 ),
                 repeatingItems: .init(
                     airlineNumericCode: "014",
@@ -600,14 +611,14 @@ func multiLegFlight() throws {
                     freeBaggageAllowance: "2PC",
                     fastTrack: "N",
                     airlinePrivateData: "WQ",
-                )
+                ),
             )
         ],
         securityData: .init(
             type: "1",
-            data: "GIWVC5EH7JNT684FVNJ91W2QA4DVN5J8K4F0L0GEQ3DF5TGBN8709HKT5D3DW3GBHFCVHMY7J5T6HFR41W2QA4DVN5J8K4F0L0GE"
+            data: "GIWVC5EH7JNT684FVNJ91W2QA4DVN5J8K4F0L0GEQ3DF5TGBN8709HKT5D3DW3GBHFCVHMY7J5T6HFR41W2QA4DVN5J8K4F0L0GE",
         ),
-        rest: nil
+        rest: nil,
     )
 
     #expect(parsed == created)
@@ -651,7 +662,8 @@ func realWorldTwoSegment() throws {
     #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance?.isEmpty == true)
     #expect(
         parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
-        == true)
+            == true,
+    )
     #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
     #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer?.isEmpty == true)
     #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
@@ -660,12 +672,15 @@ func realWorldTwoSegment() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber?.isEmpty == true)
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator == "0")
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
-    #expect(parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator == "")
     #expect(
-        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true
+        parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator?.isEmpty
+            == true,
     )
     #expect(
-        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true,
+    )
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true,
     )
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
@@ -717,8 +732,10 @@ func airBerlinYoshiEdgeCase() throws {
     // There are... multiple issues with this BP.
     // It has no PNR, which is... surprising, but at least it doesn't skip the entire field.
     // It has an out-of-spec way of specifing the flight date, using `  0` instead of `001` for Jan 1st.
-    // Then, the conditional data section is also borked: it is almost perfectly valid, but the frequent flyer airline is specified as "AB", instead
-    // of "AB " (with a trailing space). This messes up the parsing of the rest of the fields, making it impossible to parse correctly.
+    // Then, the conditional data section is also borked: it is almost perfectly valid, but the frequent flyer airline
+    // is specified as "AB", instead
+    // of "AB " (with a trailing space). This messes up the parsing of the rest of the fields, making it impossible to
+    // parse correctly.
     let input = "M1NOT/JOSH            E       CTATXLAB 8783   1Y013D0001 162>5321OR6365BAZ                                        2A7123987654321 0   AB123456789           N"
     let parser = RawBoardingPassParser()
     let parsed = try parser.parse(input)
@@ -757,15 +774,15 @@ func airBerlinYoshiEdgeCase() throws {
         parsed.conditionalData?.conditionalUniqueItems.bags == [
             .emptyString,
             .emptyString,
-            .emptyString,
-        ]
+            .emptyString
+        ],
     )
 
     withKnownIssue {
         // I'd like to maybe try detecting this failure mode and fixing it up, but that's a task for a future me.
         #expect(
             parsed.conditionalData?.conditionalRepeatingItems != nil,
-            "Failed parsing conditional repeating data in:\n\(input)"
+            "Failed parsing conditional repeating data in:\n\(input)",
         )
     }
     #expect(parsed.rest == "2A7123987654321 0   AB123456789           N")
@@ -774,9 +791,11 @@ func airBerlinYoshiEdgeCase() throws {
 @Test
 func wizzAirEdgeCase() throws {
     // Another BP from @notjosh.
-    // This one is (seemingly?) to standard, but has weird in that it completely omits the "unique" conditional data section,
+    // This one is (seemingly?) to standard, but has weird in that it completely omits the "unique" conditional data
+    // section,
     // but still includes the "repeating" section, filled with blanks for everything other than the fast track.
-    // As a bonus point, it does not indicate whether it's an E-Ticket, which would imply that it's not, which it absolutely was.
+    // As a bonus point, it does not indicate whether it's an E-Ticket, which would imply that it's not, which it
+    // absolutely was.
     let input = "M1NOT/JOSH             PNR123 BUDSXFW6 2315 197Y012A0011 130>5002A                                         N"
     let parser = RawBoardingPassParser()
     let parsed = try parser.parse(input)
@@ -833,12 +852,12 @@ func norwegianConditionalDataEdgeCase() throws {
     // of the "Airline Private Data" field.
     // Why?
     // Because computers suck, that's why.
-    // This is also a fun one since it also has both "unique" and "repeating" conditional data section completely omitted.
+    // This is also a fun one since it also has both "unique" and "repeating" conditional data section completely
+    // omitted.
     // It also does the same thing as W6 above, and doesn't correctly indicate whether it's an eticket or not.
     let input = "M1NOT/JOSH             123PNR SXFOSLDY 1105 166Y027F0008 114>30000328-1234567890"
     let parser = RawBoardingPassParser()
     let parsed = try parser.parse(input)
-
 
     #expect(parsed.formatCode == "M")
     #expect(parsed.legsCount == 1)
@@ -870,7 +889,8 @@ func norwegianConditionalDataEdgeCase() throws {
     #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == nil)
     #expect(parsed.conditionalData?.conditionalUniqueItems.bags == nil)
 
-    // Compare and contrast with the BP above (`wizzAirEdgeCase`), which also had (semantically) missing unique conditional data,
+    // Compare and contrast with the BP above (`wizzAirEdgeCase`), which also had (semantically) missing unique
+    // conditional data,
     // but the section was present, just filled with blanks.
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode == nil)
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber == nil)
@@ -885,5 +905,4 @@ func norwegianConditionalDataEdgeCase() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == "328-1234567890")
 
     #expect(parsed.rest == nil)
-
 }
