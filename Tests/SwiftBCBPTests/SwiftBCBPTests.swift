@@ -433,3 +433,187 @@ func knownIssueLATAM() throws {
         )
     }
 }
+
+@Test
+func multiLegFlight() throws {
+    // Test input from: https://alee91.pythonanywhere.com
+
+    let input = "M2PHLIPS/AAAAAA       EAAAAAA ZYRCDGAF 7186 092Y013A0020 348>5180      B1A              2A13123004911111                           NAAAAAA CDGHNDJL 0046 092Y050K0039 32C2A1312300491111                            N"
+
+    let parser = RawBoardingPassParser()
+    let parsed = try parser.parse(input)
+
+    #expect(parsed.formatCode == "M")
+    #expect(parsed.legsCount == 2)
+    #expect(parsed.name.lastName == "PHLIPS")
+    #expect(parsed.name.firstName == "AAAAAA")
+    #expect(parsed.isEticket == "E")
+
+    #expect(parsed.firstFlightSegment.PNR == "AAAAAA")
+    #expect(parsed.firstFlightSegment.originAirportCode == "ZYR")
+    #expect(parsed.firstFlightSegment.destinationAirportCode == "CDG")
+    #expect(parsed.firstFlightSegment.carrierCode == "AF")
+    #expect(parsed.firstFlightSegment.flightNumber == "7186")
+    #expect(parsed.firstFlightSegment.julianFlightDate == 092)
+    #expect(parsed.firstFlightSegment.cabinClass == "Y")
+    #expect(parsed.firstFlightSegment.seat == "013A")
+    #expect(parsed.firstFlightSegment.sequenceNumber == "0020 ")
+    #expect(parsed.firstFlightSegment.passengerStatus == "3")
+
+    #expect(parsed.conditionalData?.version == .v5)
+
+    #expect(parsed.conditionalData?.conditionalUniqueItems.passengerDescription == "0")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfCheckIn?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.sourceOfIssuance?.isEmpty == true)
+    #expect(
+        parsed.conditionalData?.conditionalUniqueItems.dateOfIssuance?.isEmpty
+        == true)
+    #expect(parsed.conditionalData?.conditionalUniqueItems.documentType == "B")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.airlineDesignatorOfIssuer == "1A")
+    #expect(parsed.conditionalData?.conditionalUniqueItems.bags == [.emptyString])
+
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode == "131")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber == "2300491111")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator == "1")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator == "")
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true
+    )
+    #expect(
+        parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber?.isEmpty == true
+    )
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.fastTrack == "N")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == nil)
+
+    #expect(parsed.otherSegments?.count == 1)
+
+    let secondSegment = parsed.otherSegments?.first
+
+    #expect(secondSegment?.segment.PNR == "AAAAAA")
+    #expect(secondSegment?.segment.originAirportCode == "CDG")
+    #expect(secondSegment?.segment.destinationAirportCode == "HND")
+    #expect(secondSegment?.segment.carrierCode == "JL")
+    #expect(secondSegment?.segment.flightNumber == "0046")
+    #expect(secondSegment?.segment.julianFlightDate == 092)
+    #expect(secondSegment?.segment.cabinClass == "Y")
+    #expect(secondSegment?.segment.seat == "050K")
+    #expect(secondSegment?.segment.sequenceNumber == "0039 ")
+    #expect(secondSegment?.segment.passengerStatus == "3")
+
+    #expect(secondSegment?.repeatingItems?.airlineNumericCode == "131")
+    #expect(secondSegment?.repeatingItems?.documentNumber == "2300491111")
+    #expect(secondSegment?.repeatingItems?.selecteeIndicator?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.internationalDocumentVerification?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.marketingCarrierDesignator?.isEmpty == true)
+    #expect(
+        secondSegment?.repeatingItems?.frequentFlyerAirlineDesignator?.isEmpty
+        == true)
+    #expect(secondSegment?.repeatingItems?.frequentFlyerNumber?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(secondSegment?.repeatingItems?.fastTrack == "N")
+    #expect(secondSegment?.repeatingItems?.airlinePrivateData == nil)
+
+    #expect(parsed.securityData == nil)
+    #expect(parsed.rest == nil)
+}
+
+@Test func multiLegSpecExample() async throws {
+    // This is the example from the v5 of the BCBP spec, verabatim.
+    let input = "M2DESMARAIS/LUC       EABC123 YULFRAAC 0834 226F001A0025 14D>6181WW6225BAC 00141234560032A0141234567890 1AC AC 1234567890123    20KYLX58ZDEF456 FRAGVALH 3664 227C012C0002 12E2A0140987654321 1AC AC 1234567890123    2PCNWQ^164GIWVC5EH7JNT684FVNJ91W2QA4DVN5J8K4F0L0GEQ3DF5TGBN8709HKT5D3DW3GBHFCVHMY7J5T6HFR41W2QA4DVN5J8K4F0L0GE"
+
+    let parser = RawBoardingPassParser()
+    let parsed = try parser.parse(input)
+
+    // I'm not sure if I like this style of testing?
+    // Having it broken down field by field makes it easier to see what is failing.
+    // Doing this however, let's us verify that _manually_ created instances also encode to the expected value,
+    // so having _one_ could be useful.
+    let created = RawBoardingPass(
+        formatCode: "M",
+        legsCount: 2,
+        name: .init(lastName: "DESMARAIS", firstName: "LUC"),
+        isEticket: "E",
+        firstFlightSegment: .init(
+            PNR: "ABC123",
+            originAirportCode: "YUL",
+            destinationAirportCode: "FRA",
+            carrierCode: "AC",
+            flightNumber: "0834",
+            julianFlightDate: 226,
+            cabinClass: "F",
+            seat: "001A",
+            sequenceNumber: "0025 ",
+            passengerStatus: "1",
+        ),
+        conditionalData: .init(
+            version: .v6,
+            conditionalUniqueItems: .init(
+                passengerDescription: "1",
+                sourceOfCheckIn: "W",
+                sourceOfIssuance: "W",
+                dateOfIssuance: "6225",
+                documentType: "B",
+                airlineDesignatorOfIssuer: "AC",
+                bags: [.registeredBag(0_014_123456_003)]
+            ),
+            conditionalRepeatingItems: .init(
+                airlineNumericCode: "014",
+                documentNumber: "1234567890",
+                selecteeIndicator: "",
+                internationalDocumentVerification: "1",
+                marketingCarrierDesignator: "AC",
+                frequentFlyerAirlineDesignator: "AC",
+                frequentFlyerNumber: "1234567890123",
+                idAdIndicator: "",
+                freeBaggageAllowance: "20K",
+                fastTrack: "Y",
+                airlinePrivateData: "LX58Z",
+            )
+        ),
+        otherSegments: [
+            .init(
+                segment: .init(
+                    PNR: "DEF456",
+                    originAirportCode: "FRA",
+                    destinationAirportCode: "GVA",
+                    carrierCode: "LH",
+                    flightNumber: "3664",
+                    julianFlightDate: 227,
+                    cabinClass: "C",
+                    seat: "012C",
+                    sequenceNumber: "0002 ",
+                    passengerStatus: "1"
+                ),
+                repeatingItems: .init(
+                    airlineNumericCode: "014",
+                    documentNumber: "0987654321",
+                    selecteeIndicator: "",
+                    internationalDocumentVerification: "1",
+                    marketingCarrierDesignator: "AC",
+                    frequentFlyerAirlineDesignator: "AC",
+                    frequentFlyerNumber: "1234567890123",
+                    idAdIndicator: "",
+                    freeBaggageAllowance: "2PC",
+                    fastTrack: "N",
+                    airlinePrivateData: "WQ",
+                )
+            )
+        ],
+        securityData: .init(
+            type: "1",
+            data: "GIWVC5EH7JNT684FVNJ91W2QA4DVN5J8K4F0L0GEQ3DF5TGBN8709HKT5D3DW3GBHFCVHMY7J5T6HFR41W2QA4DVN5J8K4F0L0GE"
+        ),
+        rest: nil
+    )
+
+    #expect(parsed == created)
+
+    let printed = try parser.print(created)
+
+    #expect(printed == input)
+
+}

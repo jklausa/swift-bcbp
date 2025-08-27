@@ -11,6 +11,9 @@ struct RawBoardingPass: Sendable, Codable, Hashable {
 
     var firstFlightSegment: FlightSegment
     var conditionalData: FirstSegmentConditionalItems?
+
+    var otherSegments: [OtherSegments]?
+
     var securityData: SecurityData?
 
     var rest: String?
@@ -54,6 +57,22 @@ struct RawBoardingPassParser: ParserPrinter {
             }
 
             Optionally {
+                // ... I think?
+                // I don't think there would be space to encode as many as 9, but I don't think the spec limits
+                // it anywhere?
+                Many(1...9) {
+                    Parse(.memberwise(OtherSegments.init)) {
+                        FlightSegmentParser()
+                        HexLengthPrefixedParser {
+                            Optionally {
+                                ConditionalRepeatingItemsParser()
+                            }
+                        }
+                    }
+                }
+            }
+
+            Optionally {
                 SecurityDataParser()
             }
             
@@ -64,6 +83,10 @@ struct RawBoardingPassParser: ParserPrinter {
     }
 }
 
+struct OtherSegments: Codable, Hashable, Sendable {
+    var segment: FlightSegment
+    var repeatingItems: ConditionalRepeatingItems?
+}
 
 struct FlightSegment: Codable, Hashable, Sendable {
     var PNR: String
