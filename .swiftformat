@@ -1,0 +1,14 @@
+# SwiftFormat configuration
+
+# Swift version
+--swiftversion 6.1
+
+# Basic formatting options
+--indent 4
+--commas always
+--trailingcommas always
+
+# Enable trailing commas but disable overly opinionated defaults
+--enable trailingCommas
+--disable sortImports
+--disable spaceInsideComments

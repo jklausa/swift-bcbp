@@ -23,13 +23,13 @@ func parseAndValidateFields(testCase: BoardingPassTestCase) async throws {
         withKnownIssue {
             #expect(
                 printed.uppercased() == testCase.input.uppercased(),
-                "Failed printing back to original in:\n\(testCase.bracketedInput)"
+                "Failed printing back to original in:\n\(testCase.bracketedInput)",
             )
         } when: {
             // If the pass has malformed header field, we don't support printing it back to the original just yet.
             testCase.input.contains("00>") ||
-            testCase.filename?.contains("lK5p0BOtTw66-oDpYyI6pmwB920=.pkpass") == true || // knownIssueLATAM
-            testCase.filename?.contains("XE6hwWwe+-5Hg-Dgpr7lUDn8OaE=.pkpass") == true // airBerlinYoshiEdgeCase
+                testCase.filename?.contains("lK5p0BOtTw66-oDpYyI6pmwB920=.pkpass") == true || // knownIssueLATAM
+                testCase.filename?.contains("XE6hwWwe+-5Hg-Dgpr7lUDn8OaE=.pkpass") == true // airBerlinYoshiEdgeCase
         }
     } catch {
         let comment = if let filename = testCase.filename {
@@ -500,7 +500,7 @@ func multiLegFlight() throws {
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.selecteeIndicator == "1")
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.internationalDocumentVerification?.isEmpty == true)
     #expect(
-        parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator?.isEmpty == true
+        parsed.conditionalData?.conditionalRepeatingItems?.marketingCarrierDesignator?.isEmpty == true,
     )
     #expect(
         parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator?.isEmpty == true,
@@ -628,7 +628,7 @@ func multiLegSpecExample() async throws {
                     fastTrack: "N",
                     airlinePrivateData: "WQ",
                 ),
-            )
+            ),
         ],
         securityData: .init(
             type: "1",
@@ -732,7 +732,7 @@ func realWorldTwoSegment() throws {
 
     #expect(parsed.securityData == nil)
     #expect(parsed.rest == nil)
-    
+
     let printed = try parser.print(parsed)
     #expect(printed == input)
 }
@@ -788,7 +788,7 @@ func airBerlinYoshiEdgeCase() throws {
         parsed.conditionalData?.conditionalUniqueItems.bags == [
             .emptyString,
             .emptyString,
-            .emptyString
+            .emptyString,
         ],
     )
 
@@ -958,7 +958,7 @@ func finnairLuggageDumbness() throws {
 
     // why.
     #expect(
-        parsed.conditionalData?.conditionalUniqueItems.bags == [.literalZero]
+        parsed.conditionalData?.conditionalUniqueItems.bags == [.literalZero],
     )
 
     #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode == "105")

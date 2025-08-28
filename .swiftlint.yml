@@ -1,0 +1,19 @@
+# SwiftLint configuration
+
+# Paths
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - .swiftpm
+  - Package.swift
+
+# Disable overly restrictive rules for more flexibility
+disabled_rules:
+  - trailing_comma           # Allow trailing commas (SwiftFormat adds them)
+  - line_length              # Don't enforce line length limits
+  - file_length              # Don't enforce file length limits
+  - function_body_length     # Don't enforce function length limits
+  - identifier_name          # Allow short identifiers like v1, v2

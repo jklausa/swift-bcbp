@@ -40,7 +40,7 @@ func gatherTestCases() -> [BoardingPassTestCase] {
     [
         genericTestCases(),
         edgeCasesTestCases(),
-        privateTestCases()
+        privateTestCases(),
     ].flatMap(\.self)
 }
 
@@ -85,7 +85,6 @@ private func privateTestCases() -> [BoardingPassTestCase] {
                 $0.input.allSatisfy(\.isASCII)
             })
         } catch {
-            // swiftlint:disable:next no_print_statements
             print(error)
         }
     }
