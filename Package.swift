@@ -31,9 +31,6 @@ let package = Package(
             dependencies: ["SwiftBCBP"],
             resources: [
                 .copy("Examples")
-            ],
-            plugins: [
-                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLint")
             ]
         ),
     ]
