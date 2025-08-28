@@ -1,3 +1,5 @@
+[![CI](https://github.com/jklausa/swift-bcbp/actions/workflows/ci.yml/badge.svg)](https://github.com/jklausa/swift-bcbp/actions/workflows/ci.yml)
+
 # swift-bcbp
 
 A Swift-y printer-parser for BCBP (Bar Coded Boarding Pass) format.
