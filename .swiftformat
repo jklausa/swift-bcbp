@@ -1,7 +1,7 @@
 # SwiftFormat configuration
 
 # Swift version
---swiftversion 5.10
+--swiftversion 6.1
 
 # Basic formatting options
 --indent 4

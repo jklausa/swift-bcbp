@@ -36,29 +36,9 @@ struct BoardingPassTestCase: Hashable, Codable, CustomTestStringConvertible {
     }
 }
 
+// Load all test cases from .txt files in the Examples directory.
+// Files are extracted using the `extract-test-data.sh` script, run `make extract-test-data` to generate them.
 func gatherTestCases() -> [BoardingPassTestCase] {
-    [
-        genericTestCases(),
-        edgeCasesTestCases(),
-        privateTestCases(),
-    ].flatMap(\.self)
-}
-
-// Generic test cases from the BCBP5 documentation and other sources.
-private func genericTestCases() -> [BoardingPassTestCase] {
-    // This is a BP from the BCBP5 documentation.
-    let docsExample = "M1DESMARAIS/LUC       EABC123 YULFRAAC 0834 226F001A0025 100"
-
-    return [.init(filename: nil, input: docsExample)]
-}
-
-// These contain known-non-compliant boarding passes from my collection, with the personal data stripped out.
-private func edgeCasesTestCases() -> [BoardingPassTestCase] {
-    []
-}
-
-// Extracted using the `extract-test-data.sh` script, run `make extract-test-data` to
-private func privateTestCases() -> [BoardingPassTestCase] {
     let resources = Bundle.module.urls(forResourcesWithExtension: ".txt", subdirectory: "Examples")
 
     guard let resources, !resources.isEmpty else {

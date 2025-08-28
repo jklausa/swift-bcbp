@@ -6,3 +6,7 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# Ignore private example files but keep the spec example
+Tests/SwiftBCBPTests/Examples/*.txt
+!Tests/SwiftBCBPTests/Examples/spec-example.txt
