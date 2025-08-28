@@ -1,6 +1,3 @@
-#if os(Linux)
-import FoundationEssentials
-#endif
 import Foundation
 import Parsing
 import Testing
@@ -58,14 +55,14 @@ func gatherTestCases() -> [BoardingPassTestCase] {
     var testCases: [BoardingPassTestCase] = []
 
     for resource in resources {
-        guard let input = try? String(contentsOf: resource, encoding: .utf8) else {
+        guard let input = try? String(contentsOf: resource as URL, encoding: .utf8) else {
             continue
         }
 
         do {
             let parsedTestCases = try TestCaseParser().parse(input)
             testCases.append(contentsOf: parsedTestCases.filter {
-                $0.input.allSatisfy(\.isASCII)
+                $0.input.allSatisfy { character in character.isASCII }
             })
         } catch {
             print(error)

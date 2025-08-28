@@ -20,7 +20,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-parsing", .upToNextMajor(from: "0.14.1")),
         .package(url: "https://github.com/nicklockwood/SwiftFormat", from: "0.54.0"),
         .package(url: "https://github.com/realm/SwiftLint", from: "0.57.0"),
-    ] + linuxOnlyDependencies(),
+    ],
     targets: [
         .target(
             name: "SwiftBCBP",
@@ -28,32 +28,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftBCBPTests",
-            dependencies: [
-                "SwiftBCBP"
-            ] + linuxOnlyTestDependencies(),
+            dependencies: ["SwiftBCBP"],
             resources: [
                 .copy("Examples")
             ]
         ),
     ]
 )
-
-func linuxOnlyDependencies() -> [Package.Dependency] {
-    #if os(Linux)
-    return [
-        .package(url: "https://github.com/swiftlang/swift-foundation.git", revision: "swift-6.1-RELEASE")
-    ]
-    #else
-    return []
-    #endif
-}
-
-func linuxOnlyTestDependencies() -> [Target.Dependency] {
-    #if os(Linux)
-    return [
-        .product(name: "FoundationEssentials", package: "swift-foundation")
-    ]
-    #else
-    return []
-    #endif
-}
