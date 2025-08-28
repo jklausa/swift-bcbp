@@ -1,8 +1,7 @@
 #if os(Linux)
 import FoundationEssentials
-#else
-import Foundation
 #endif
+import Foundation
 import Parsing
 import Testing
 
