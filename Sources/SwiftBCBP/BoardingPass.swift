@@ -386,61 +386,68 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
 
 struct ConditionalRepeatingItemsParser: ParserPrinter {
     var body: some ParserPrinter<Substring, ConditionalRepeatingItems> {
-        ParsePrint(.memberwise(ConditionalRepeatingItems.init)) {
-            HexLengthPrefixedParser {
-                Optionally {
-                    RightPaddedStringParser(length: 3) // airline numeric code
-                        .map(.string)
+        OneOf {
+            // Try to handle a boarding pass where the frequent flyer airline designator is
+            // incorrectly encoded as two characters instead of three.
+            Malformed.twoCharacterFFAirlineField
+
+            // Standard parsing
+            ParsePrint(.memberwise(ConditionalRepeatingItems.init)) {
+                HexLengthPrefixedParser {
+                    Optionally {
+                        RightPaddedStringParser(length: 3) // airline numeric code
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 10) // document number
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 1) // selectee indicator
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 1) // international document verification
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 3) // marketing carrier designator
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 3) // frequent flyer airline designator
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 16) // frequent flyer number
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 1) // ID/AD indicator
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 3) // free baggage allowance
+                            .map(.string)
+                    }
+
+                    Optionally {
+                        RightPaddedStringParser(length: 1) // fast track
+                            .map(.string)
+                    }
                 }
 
                 Optionally {
-                    RightPaddedStringParser(length: 10) // document number
-                        .map(.string)
+                    Rest().map(.string) // airline private data
                 }
-
-                Optionally {
-                    RightPaddedStringParser(length: 1) // selectee indicator
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 1) // international document verification
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 3) // marketing carrier designator
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 3) // frequent flyer airline designator
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 16) // frequent flyer number
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 1) // ID/AD indicator
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 3) // free baggage allowance
-                        .map(.string)
-                }
-
-                Optionally {
-                    RightPaddedStringParser(length: 1) // fast track
-                        .map(.string)
-                }
-            }
-
-            Optionally {
-                Rest().map(.string) // airline private data
             }
         }
     }

@@ -741,14 +741,16 @@ func realWorldTwoSegment() throws {
 func airBerlinYoshiEdgeCase() throws {
     // This is a BP donated by @notjosh.
     // As always, personal info has been redacted.
+    //
     // There are... multiple issues with this BP.
-    // It has no PNR, which is... surprising, but at least it doesn't skip the entire field.
-    // It has an out-of-spec way of specifing the flight date, using `  0` instead of `001` for Jan 1st.
-    // Then, the conditional data section is also borked: it is almost perfectly valid, but the frequent flyer airline
-    // is specified as "AB", instead
-    // of "AB " (with a trailing space). This messes up the parsing of the rest of the fields, making it impossible to
-    // parse correctly.
-    // Funilly enough, the header lengths are also incorrect for the _actual_ data that is present, but
+    // - It has no PNR, which is... surprising, but at least it doesn't skip the entire field.
+    // - It has an out-of-spec way of specifing the flight date, using `  0` instead of `001` for Jan 1st.
+    // -  The conditional data section is also borked: it is almost perfectly valid, but the frequent flyer airline
+    // is specified as "AB", instead of "AB " (with a trailing space).
+    //
+    // This messes up the parsing of the rest of the fields, making it impossible to parse correctly.
+    //
+    // Funnily enough, the header lengths are also incorrect for the _actual_ data that is present, but
     // would be matching if the FF airline field was correctly padded!
     let input = "M1NOT/JOSH            E       CTATXLAB 8783   1Y013D0001 162>5321OR6365BAZ                                        2A7123987654321 0   AB123456789           N"
     let parser = RawBoardingPassParser()
@@ -792,17 +794,46 @@ func airBerlinYoshiEdgeCase() throws {
         ],
     )
 
-    withKnownIssue {
-        // I'd like to maybe try detecting this failure mode and fixing it up, but that's a task for a future me.
-        #expect(
-            parsed.conditionalData?.conditionalRepeatingItems != nil,
-            "Failed parsing conditional repeating data in:\n\(input)",
-        )
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlineNumericCode == "712")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.documentNumber == "3987654321")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator == "AB")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber == "123456789")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance?.isEmpty == true)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.fastTrack == "N")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.airlinePrivateData == nil)
 
+    withKnownIssue {
+        // Printing won't round-trip just yet.
         let printed = try parser.print(parsed)
         #expect(printed == input)
     }
-    #expect(parsed.rest == "2A7123987654321 0   AB123456789           N")
+
+    #expect(parsed.rest == nil)
+}
+
+@Test
+func genericTwoCharFFAirline() throws {
+    // This is a made up example of a BP with a two-char FF airline designator.
+    // This is to illustrate that the parser does not hardcode the "AB", but rather
+    // works with any two-char code, and also works fine if the fields after the FF fields are missing.
+    let input = "M1TEST/PASSENGER      E       CPHLAX SK 123 001Y010A0001 123>5321OR6365BAZ                                        2A7123987654321 0   SK9876543210123456"
+
+    let parser = RawBoardingPassParser()
+    let parsed = try parser.parse(input)
+
+    // Should parse successfully despite SK being only 2 chars
+    #expect(parsed.conditionalData?.conditionalRepeatingItems != nil)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerAirlineDesignator == "SK")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.frequentFlyerNumber == "9876543210123456")
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.idAdIndicator == nil)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.freeBaggageAllowance == nil)
+    #expect(parsed.conditionalData?.conditionalRepeatingItems?.fastTrack == nil)
+
+    withKnownIssue {
+        let printed = try parser.print(parsed)
+        #expect(printed == input)
+    }
 }
 
 @Test
