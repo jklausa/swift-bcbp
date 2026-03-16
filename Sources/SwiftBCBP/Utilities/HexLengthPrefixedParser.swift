@@ -42,7 +42,8 @@ struct TwoDigitHexStringToInt: ParserPrinter {
         Prefix(2)
             .pipe { Int.parser(radix: 16) }
             .printing { value, input in
-                // We need custom printing, because we need a zero-padded value.
+                // `Int.parser()` supports printing, but to conform to the BCBP spec,
+                // we need to zero-pad the value, so we use custom printing here.
                 guard value >= 0, value <= 0xFF else {
                     throw BCBPError.hexValueTooBig
                 }

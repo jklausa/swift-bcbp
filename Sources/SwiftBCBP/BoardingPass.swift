@@ -1,22 +1,22 @@
-import Parsing
+@_exported import Parsing
 
 // MARK: - RawBoardingPass
 
-struct RawBoardingPass: Sendable, Codable, Hashable {
-    var formatCode: String
-    var legsCount: Int
+public struct RawBoardingPass: Sendable, Codable, Hashable {
+    public var formatCode: String
+    public var legsCount: Int
 
-    var name: Name
-    var isEticket: String
+    public var name: Name
+    public var isEticket: String
 
-    var firstFlightSegment: FlightSegment
-    var conditionalData: FirstSegmentConditionalItems?
+    public var firstFlightSegment: FlightSegment
+    public var conditionalData: FirstSegmentConditionalItems?
 
-    var otherSegments: [OtherSegments]?
+    public var otherSegments: [OtherSegments]?
 
-    var securityData: SecurityData?
+    public var securityData: SecurityData?
 
-    var rest: String?
+    public var rest: String?
     // Sometimes the BP contains extra data beyond what is supposed to be there according
     // to the specified field lengths.
     // We capture it here so we can round-trip the parsing perfectly if needed.
@@ -24,8 +24,8 @@ struct RawBoardingPass: Sendable, Codable, Hashable {
 
 // MARK: - RawBoardingPassParser
 
-struct RawBoardingPassParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, RawBoardingPass> {
+public struct RawBoardingPassParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, RawBoardingPass> {
         ParsePrint(.memberwise(RawBoardingPass.init)) {
             Prefix(1).map(.string) // format code
             Digits(1) // legs count
@@ -103,40 +103,42 @@ struct RawBoardingPassParser: ParserPrinter {
             }
         }
     }
+
+    public init() {}
 }
 
 // MARK: - OtherSegments
 
-struct OtherSegments: Codable, Hashable, Sendable {
-    var segment: FlightSegment
-    var repeatingItems: ConditionalRepeatingItems?
+public struct OtherSegments: Codable, Hashable, Sendable {
+    public var segment: FlightSegment
+    public var repeatingItems: ConditionalRepeatingItems?
 }
 
 // MARK: - FlightSegment
 
-struct FlightSegment: Codable, Hashable, Sendable {
-    var PNR: String
-    var originAirportCode: String
-    var destinationAirportCode: String
+public struct FlightSegment: Codable, Hashable, Sendable {
+    public var PNR: String
+    public var originAirportCode: String
+    public var destinationAirportCode: String
 
-    var carrierCode: String
-    var flightNumber: String
+    public var carrierCode: String
+    public var flightNumber: String
 
-    var julianFlightDate: Int
+    public var julianFlightDate: Int
 
-    var cabinClass: String
+    public var cabinClass: String
 
-    var seat: String
-    var sequenceNumber: String
+    public var seat: String
+    public var sequenceNumber: String
     // should we try to turn it into a digit?
 
-    var passengerStatus: String
+    public var passengerStatus: String
 }
 
 // MARK: - FlightSegmentParser
 
-struct FlightSegmentParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, FlightSegment> {
+public struct FlightSegmentParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, FlightSegment> {
         ParsePrint(.memberwise(FlightSegment.init)) {
             RightPaddedStringParser(length: 7)
                 .map(.string) // PNR
@@ -183,8 +185,13 @@ struct FlightSegmentParser: ParserPrinter {
 // MARK: - Name
 
 public struct Name: Sendable, Codable, Hashable {
-    var lastName: String
-    var firstName: String?
+    public var lastName: String
+    public var firstName: String?
+
+    public init(lastName: String, firstName: String? = nil) {
+        self.lastName = lastName
+        self.firstName = firstName
+    }
 }
 
 // MARK: - NameParser
@@ -209,8 +216,8 @@ public struct NameParser: ParserPrinter {
 // MARK: - SecurityData
 
 public struct SecurityData: Codable, Sendable, Hashable {
-    var type: String
-    var data: String
+    public var type: String
+    public var data: String
 }
 
 // MARK: - SecurityDataParser
@@ -229,13 +236,13 @@ public struct SecurityDataParser: ParserPrinter {
 
 // MARK: - FirstSegmentConditionalItems
 
-struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
-    var version: Version
+public struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
+    public var version: Version
 
-    var conditionalUniqueItems: ConditionalUniqueItems
-    var conditionalRepeatingItems: ConditionalRepeatingItems?
+    public var conditionalUniqueItems: ConditionalUniqueItems
+    public var conditionalRepeatingItems: ConditionalRepeatingItems?
 
-    enum Version: Sendable, Hashable, Codable {
+    public enum Version: Sendable, Hashable, Codable {
         case v1
         case v2
         case v3
@@ -250,8 +257,8 @@ struct FirstSegmentConditionalItems: Sendable, Hashable, Codable {
 
 // MARK: - FirstSegmentConditionalItemsParser
 
-struct FirstSegmentConditionalItemsParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, FirstSegmentConditionalItems> {
+public struct FirstSegmentConditionalItemsParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, FirstSegmentConditionalItems> {
         ParsePrint(.memberwise(FirstSegmentConditionalItems.init)) {
             ">"
             VersionParser()
@@ -260,8 +267,8 @@ struct FirstSegmentConditionalItemsParser: ParserPrinter {
         }
     }
 
-    struct VersionParser: ParserPrinter {
-        var body: some ParserPrinter<Substring, FirstSegmentConditionalItems.Version> {
+    public struct VersionParser: ParserPrinter {
+        public var body: some ParserPrinter<Substring, FirstSegmentConditionalItems.Version> {
             OneOf {
                 "1".map { FirstSegmentConditionalItems.Version.v1 }
                 "2".map { FirstSegmentConditionalItems.Version.v2 }
@@ -284,24 +291,24 @@ struct FirstSegmentConditionalItemsParser: ParserPrinter {
 // I hate this stupid name, but this is sorta-kinda-what the spec refers to it as.
 // All fields are marked as optional, because different versions of the spec have different fields, and airlines
 // frequently omit fields they don't care about.
-struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
-    var airlineNumericCode: String?
-    var documentNumber: String?
+public struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
+    public var airlineNumericCode: String?
+    public var documentNumber: String?
 
-    var selecteeIndicator: String?
-    var internationalDocumentVerification: String?
+    public var selecteeIndicator: String?
+    public var internationalDocumentVerification: String?
 
-    var marketingCarrierDesignator: String?
+    public var marketingCarrierDesignator: String?
 
-    var frequentFlyerAirlineDesignator: String?
-    var frequentFlyerNumber: String?
+    public var frequentFlyerAirlineDesignator: String?
+    public var frequentFlyerNumber: String?
 
-    var idAdIndicator: String?
-    var freeBaggageAllowance: String?
+    public var idAdIndicator: String?
+    public var freeBaggageAllowance: String?
 
-    var fastTrack: String?
+    public var fastTrack: String?
 
-    var airlinePrivateData: String?
+    public var airlinePrivateData: String?
 
     init(
         airlineNumericCode: String? = nil,
@@ -332,21 +339,21 @@ struct ConditionalRepeatingItems: Sendable, Codable, Hashable {
 
 // MARK: - ConditionalUniqueItems
 
-struct ConditionalUniqueItems: Sendable, Codable, Hashable {
-    var passengerDescription: String?
-    var sourceOfCheckIn: String?
-    var sourceOfIssuance: String?
-    var dateOfIssuance: String?
-    var documentType: String?
-    var airlineDesignatorOfIssuer: String?
+public struct ConditionalUniqueItems: Sendable, Codable, Hashable {
+    public var passengerDescription: String?
+    public var sourceOfCheckIn: String?
+    public var sourceOfIssuance: String?
+    public var dateOfIssuance: String?
+    public var documentType: String?
+    public var airlineDesignatorOfIssuer: String?
 
-    var bags: [BaggageTag]?
+    public var bags: [BaggageTag]?
 }
 
 // MARK: - ConditionalUniqueItemsParser
 
-struct ConditionalUniqueItemsParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
+public struct ConditionalUniqueItemsParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, ConditionalUniqueItems> {
         ParsePrint(.memberwise(ConditionalUniqueItems.init)) {
             HexLengthPrefixedParser {
                 Optionally {
@@ -384,8 +391,8 @@ struct ConditionalUniqueItemsParser: ParserPrinter {
 
 // MARK: - ConditionalRepeatingItemsParser
 
-struct ConditionalRepeatingItemsParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, ConditionalRepeatingItems> {
+public struct ConditionalRepeatingItemsParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, ConditionalRepeatingItems> {
         ParsePrint(.memberwise(ConditionalRepeatingItems.init)) {
             HexLengthPrefixedParser {
                 Optionally {
@@ -448,7 +455,7 @@ struct ConditionalRepeatingItemsParser: ParserPrinter {
 
 // MARK: - BaggageTag
 
-enum BaggageTag: Sendable, Codable, Hashable {
+public enum BaggageTag: Sendable, Codable, Hashable {
     case emptyString
     case literalZero
     case registeredBag(Int)
@@ -456,8 +463,8 @@ enum BaggageTag: Sendable, Codable, Hashable {
 
 // MARK: - BaggageTagParser
 
-struct BaggageTagParser: ParserPrinter {
-    var body: some ParserPrinter<Substring, [BaggageTag]> {
+public struct BaggageTagParser: ParserPrinter {
+    public var body: some ParserPrinter<Substring, [BaggageTag]> {
         Parse {
             // I have a CX boarding pass with zero bags, that are encoded as 39 spaces.
             // Nobody else does it like that but heyo!
